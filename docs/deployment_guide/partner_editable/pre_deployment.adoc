@@ -1,3 +1,15 @@
-//Include any predeployment steps here, such as signing up for a Marketplace AMI or making any changes to a partner account. If there are no predeployment steps, leave this file empty.
-
 == Predeployment steps
+
+. If you don't already have one, create an account with https://technet.tmaxsoft.com/en/front/main/main.do[Tmax TechNet^].
+
+. Obtain a license for Tibero 6 Enterprise Edition (Cloud Edition) as follows:
++
+* For a demo license key, if you're a global customer (outside Korea), go to https://technet.tmaxsoft.com/en/front/main/main.do[this Technet page^]. If you're a Korean customer, go to https://www.tmaxtibero.com/service/inquiryWrite.do[this {partner-company-name} Korean webpage^].
++
+* For a full license, purchase product 031-8018-1111. If you're a global customer (outside Korea), fill in the information on https://www.tmaxsoft.com/contact/[this {partner-company-name} contact page^], and someone will contact you. If you're a Korean customer, go to https://www.tmaxtibero.com/service/inquiryWrite.do[this {partner-company-name} Korean webpage^].
+
+. In AWS Marketplace, subscribe to the AMI for https://aws.amazon.com/marketplace/pp/prodview-qck3d4udqa2zm[Tibero 6 Enterprise Edition^].
+
+. In AWS Marketplace, subscribe to the AMI for https://aws.amazon.com/marketplace/pp/prodview-kv5mi3ksb2mma[Red Hat Enterprise Linux 8^].
+
+NOTE: Do not to install Red Hat Enterprise Linux. This Quick Start installs it for you.
