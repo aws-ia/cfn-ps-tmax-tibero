@@ -1,5 +1,5 @@
 project:
-  name: quickstart-tmax-tibero
+  name: cfn-ps-tmax-tibero
   owner: quickstart-eng@amazon.com
   s3_regional_buckets: true
   template: templates/tmax-entrypoint.template.yaml
