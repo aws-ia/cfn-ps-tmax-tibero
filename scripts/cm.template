@@ -1,0 +1,18 @@
+#-------------------------------------------------------------------------------
+#
+# Cluster Manager initialization parameter
+#
+#-------------------------------------------------------------------------------
+
+CM_NAME=@CM_NAME@
+CM_UI_PORT=@CM_UIPORT@
+CM_RESOURCE_FILE=@TB_HOME@/@CM_NAME@/@CM_NAME@_res.crf
+
+CM_HEARTBEAT_EXPIRE=@CM_HEARTBEAT_EXPIRE@
+CM_WATCHDOG_EXPIRE=@CM_WATCHDOG_EXPIRE@
+#LOG_LVL_CM
+
+#CM_ENABLE_FAST_NET_ERROR_DETECTION=Y
+#CM_FENCE=Y
+#_CM_CHECK_RUNLEVEL=Y
+

@@ -1,0 +1,702 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS CloudFormation Template that deploys Tibero in TSC-Obs mode in an existing vpc. (qs-1t1mlooo7)
+Metadata:
+  cfn-lint: { config: { ignore_checks: [W9006, W9002, W9003] } }
+  QuickStartDocumentation:
+    EntrypointName: "Launch into a existing VPC and Tmax Database"
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Network Configuration
+        Parameters:
+          - VPCID
+          - PrivateSubnet1ID
+          - PrivateSubnet2ID
+          - PrivateSubnet3ID
+          - PublicSubnet1ID
+          - PublicSubnet2ID
+          - RemoteAccessCIDR
+      - Label:
+          default: Amazon EC2 Configuration
+        Parameters:
+          - KeyPairName
+          - TiberoAMIOS
+          - PrimaryDBInstanceType
+          - StandbyDBInstanceType
+          - ObserverInstanceType
+          - PrimaryIPAddress
+          - StandbyIPAddress
+          - ObserverIPAddress
+      - Label:
+          default: Tibero Database Configuration
+        Parameters:
+          - TiberoBinaryName
+          - DatabaseName
+          - DatabaseDirectoryName
+          - DatabaseUserID
+          - DatabaseUserPassword
+          - DatabasePort
+          - DatabaseLocalPort
+          - DatabaseStandbyLogPort
+          - TiberoSID
+          - PrimaryClusterManagerSID
+          - StandbyClusterManagerSID
+          - ClusterManagerPort
+          - ClusterManagerLocalPort
+          - ObserverSID
+          - ObserverPort
+          - CharacterSet
+          - PrimaryEBSVolumeType
+          - PrimaryEBSVolumeSize
+          - PrimaryEBSVolumeIOPS
+          - StandbyEBSVolumeType
+          - StandbyEBSVolumeIOPS
+          - SystemDatafileSize
+          - SyssubDatafileSize
+          - UserTablespaceDatafileSize
+          - TemporaryTablespaceDatafileSize
+          - UndoTablespaceDatafileSize
+          - RedoLogfileSize
+          - RedoLogGroup
+          - RedoLogDuplicate
+      - Label:
+          default: Linux Bastion Configuration
+        Parameters:
+          - BastionAMIOS
+          - BastionInstanceType
+          - NumBastionHosts
+      - Label:
+          default: S3 Bucket Configuration
+        Parameters:
+          - QSS3BucketName
+          - QSS3KeyPrefix
+          - QSS3BucketRegion
+      - Label:
+          default: Lambda Function Configuration
+        Parameters:
+          - EventBusName
+    ParameterLabels:
+      KeyPairName:
+        default: Key Pair Name
+      CharacterSet:
+        default: Character Set
+      TiberoBinaryName:
+        default: Tibero Home Directory
+      DatabaseName:
+        default: Database Name
+      DatabaseDirectoryName:
+        default: Database Directory Name
+      DatabaseUserID:
+        default: Database User ID
+      DatabaseUserPassword:
+        default: Database User Password
+      DatabasePort:
+        default: Database Port Number
+      DatabaseStandbyLogPort:
+        default: Database Standby Log Port Number
+      DatabaseLocalPort:
+        default: Database Local Port Number
+      TiberoSID:
+        default: Tibero SID
+      PrimaryClusterManagerSID:
+        default: Primary Tibero Cluster Manager SID
+      StandbyClusterManagerSID:
+        default: Standby Tibero Cluster Manager SID
+      ClusterManagerPort:
+        default: Tibero Cluster Manager Port Number
+      ClusterManagerLocalPort:
+        default: Tibero Cluster Manager Local Port Number
+      ObserverSID:
+        default: Tibero Observer SID
+      ObserverPort:
+        default: Observer Port Number
+      RemoteAccessCIDR:
+        default: Allowed Bastion External Access CIDR
+      VPCID:
+        default: VPC ID
+      PublicSubnet1ID:
+        default: Public subnet 1 ID
+      PublicSubnet2ID:
+        default: Public subnet 2 ID
+      PrivateSubnet1ID:
+        default: Private subnet 1 ID
+      PrivateSubnet2ID:
+        default: Private subnet 2 ID
+      PrivateSubnet3ID:
+        default: Private subnet 3 ID
+      PrimaryIPAddress:
+        default: Primary Database Private IP
+      StandbyIPAddress:
+        default: Standby Database Private IP
+      ObserverIPAddress:
+        default: Observer Private IP
+      BastionAMIOS:
+        default: Bastion Operating System
+      BastionInstanceType:
+        default: Bastion Instance Type
+      NumBastionHosts:
+        default: Number of Bastion Hosts
+      TiberoAMIOS:
+        default: Database Operating System
+      PrimaryDBInstanceType:
+        default: Primary Database Instance Type
+      StandbyDBInstanceType:
+        default: Standby Database Instance Type
+      ObserverInstanceType:
+        default: Observer Instance Type
+      PrimaryEBSVolumeType:
+        default: Primary EBS Volume Type
+      PrimaryEBSVolumeSize:
+        default: Primary EBS Volume Size(GiB)
+      PrimaryEBSVolumeIOPS:
+        default: Primary EBS Volume IOPS
+      StandbyEBSVolumeType:
+        default: Standby EBS Volume Type
+      StandbyEBSVolumeIOPS:
+        default: Standby EBS Volume IOPS
+      SystemDatafileSize:
+        default: System Datafile Size
+      SyssubDatafileSize:
+        default: SYSSUB Datafile Size
+      UserTablespaceDatafileSize:
+        default: User Tablespace Datafile Size
+      TemporaryTablespaceDatafileSize:
+        default: Temporary Tablespace Datafile Size
+      UndoTablespaceDatafileSize:
+        default: Undo Tablespace Datafile Size
+      RedoLogfileSize:
+        default: Redo Log file Size
+      RedoLogGroup:
+        default: Redo Log Group
+      RedoLogDuplicate:
+        default: Redo Log Duplicate
+      QSS3BucketName:
+        default: Tmax Quick Start S3 Bucket Name
+      QSS3KeyPrefix:
+        default: Tmax Quick Start S3 Key Prefix
+      QSS3BucketRegion:
+        default: Tmax Quick Start S3 Bucket Region
+      EventBusName:
+        default: EventBus Name
+
+
+Parameters:
+  KeyPairName:
+    Description: Name of an existing EC2 Keypair to enable SSH access to the Instance
+    ConstraintDescription: must be the name of an existing EC2 KeyPair
+    Type: AWS::EC2::KeyPair::KeyName
+
+  CharacterSet:
+    Description: Character set for Tibero Database
+    Type: String
+    Default: MSWIN949
+    AllowedValues:
+      - AL32UTF8
+      - AR8ISO8859P6
+      - AR8MSWIN1256
+      - BLT8ISO8859P13
+      - BLT8MSWIN1257
+      - CL8ISO8859P5
+      - CL8MSWIN1251
+      - EE8ISO8859P2
+      - EE8MSWIN1250
+      - EL8ISO8859P7
+      - EL8MSWIN1253
+      - IW8ISO8859P8
+      - IW8MSWIN1255
+      - JA16EUC
+      - JA16EUCTILDE
+      - JA16SJIS
+      - JA16SJISTILDE
+      - KO16MSWIN949
+      - MSWIN949
+      - NE8ISO8859P10
+      - NEE8ISO8859P4
+      - TH8TISASCII
+      - TR8MSWIN1254
+      - US7ASCII
+      - UTF8
+      - VN8MSWIN1258
+      - WE8ISO8859P1
+      - WE8ISO8859P15
+      - WE8ISO8859P9
+      - WE8MSWIN1252
+      - ZHS16GBK
+      - ZHT16HKSCS
+      - ZHT16MSWIN950
+      - ZHT32EUC
+
+  TiberoBinaryName:
+    Description: Enter your Tibero Binary Name
+    Type: String
+    Default: tibero6
+
+  DatabaseName:
+    Description: Enter your Database Name
+    ConstraintDescription: No special chars, Min 3, Maximum of 8 characters
+    Type: String
+    Default: Tibero
+    AllowedPattern: ([A-Za-z0-9-]{3,8})
+
+  DatabaseDirectoryName:
+    Description: Enter the Directory Name of Tibero Database that will be created
+    Type: String
+    Default: database
+
+  DatabaseUserID:
+    Description: Enter your Database User ID
+    ConstraintDescription: No special chars, Min 3, Maximum of 10 characters
+    Type: String
+    AllowedPattern: ([A-Za-z0-9-]{3,10})
+
+  DatabaseUserPassword:
+    Description: Enter your Database Password, Min 3, Maximum of 20 characters
+    ConstraintDescription: Input your Database Password, min 3, maximum of 20 characters
+    NoEcho: 'true'
+    Type: String
+    AllowedPattern: ([A-Za-z0-9_#$]{3,20})
+
+  DatabasePort:
+    Description: Tibero Database Listener port number(1024 ~ 65535)
+    ConstraintDescription: Avoid numbers of Database Local port, Database Standby Log port, ClusterManager port, ClusterManger Local port and Observer port(1024 ~ 65535)
+    Type: Number
+    Default: 9400
+    MinValue: 1024
+    MaxValue: 65535
+
+  DatabaseLocalPort:
+    Description: Tibero Database Local port number(1024 ~ 65535)
+    ConstraintDescription: Avoid numbers of Database port, Database Standby Log port, ClusterManager port, ClusterManager Local port and Observer port(1024 ~ 65535)
+    Type: Number
+    Default: 9450
+    MinValue: 1024
+    MaxValue: 65535
+
+  DatabaseStandbyLogPort:
+    Description: Tibero Database Standby Log port number(1024 ~ 65535)
+    ConstraintDescription: Avoid numbers of Database port, Database Local port, ClusterManager port, ClusterManager Local port, and Observer port(1024 ~ 65535)
+    Type: Number
+    Default: 9404
+    MinValue: 1024
+    MaxValue: 65535
+
+  TiberoSID:
+    Description: Tibero SID
+    Type: String
+    Default: tibero
+
+  PrimaryClusterManagerSID:
+    Description: Primary Tibero Cluster Manager SID
+    ConstraintDescription: Set to a different ID than Standby CM_SID
+    Type: String
+    Default: cmp
+
+  StandbyClusterManagerSID:
+    Description: Standby Tibero Cluster Manager SID
+    ConstraintDescription: Set to a different ID than Primary CM_SID
+    Type: String
+    Default: cms
+
+  ClusterManagerPort:
+    Description: Tibero Cluster Manager port number. This port number is used for sending messages to CM when managing resources such as Tibero and Observer.(1024 ~ 65535)
+    ConstraintDescription: Avoid numbers of Database port, Database Local port, Database Standby Log port, ClusterManager Local port and Observer port(1024 ~ 65535)
+    Type: Number
+    Default: 9500
+    MinValue: 1024
+    MaxValue: 65535
+
+  ClusterManagerLocalPort:
+    Description: Tibero Cluster Manager port number. This port number is used for sending messages to CM when managing resources such as Tibero and Observer.(1024 ~ 65535)
+    ConstraintDescription: Avoid numbers of Database port, Database Local port, Database Standby Log port, ClusterManager port and Observer port(1024 ~ 65535)
+    Type: Number
+    Default: 9550
+    MinValue: 1024
+    MaxValue: 65535
+
+  ObserverSID:
+    Description: Tibero Observer SID
+    Type: String
+    Default: obs
+
+  ObserverPort:
+    Description: Observer port number(1024 ~ 65535)
+    ConstraintDescription: Avoid numbers of Database port, Database Local port, Database Standby Log port, ClusterManager port and ClusterManager Local port(1024 ~ 65535)
+    Type: Number
+    Default: 9600
+    MinValue: 1024
+    MaxValue: 65535
+
+  RemoteAccessCIDR:
+    Description: Allowed CIDR block for external SSH access to the bastion instance
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
+    Type: String
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+
+  PublicSubnet1ID:
+    Type: String
+    Description: ID of the public subnet in Availability Zone 1 of your existing VPC (e.g., subnet-a0246dcd).
+    Default: ""
+  PublicSubnet2ID:
+    Type: String
+    Description: ID of the public subnet in Availability Zone 2 of your existing VPC (e.g., subnet-b1236eea).
+    Default: ""
+  PrivateSubnet1ID:
+    Type: "AWS::EC2::Subnet::Id"
+    Description: ID of the private subnet in Availability Zone 1 of your existing VPC (e.g., subnet-fe9a8b32).
+  PrivateSubnet2ID:
+    Type: String
+    Description: ID of the private subnet in Availability Zone 2 of your existing VPC (e.g., subnet-be8b01ea).
+    Default: ""
+  PrivateSubnet3ID:
+    Type: String
+    Description: ID of the private subnet in Availability Zone 3 of your existing VPC (e.g., subnet-abd39039).
+    Default: ""
+
+  PrimaryIPAddress:
+    Description: This must be a valid IP address for private subnet 1
+    ConstraintDescription: IP address parameter must be in the form x.x.x.x
+    Type: String
+    Default: 10.0.0.5
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$
+
+  StandbyIPAddress:
+    Description: This must be a valid IP address for private subnet 2
+    ConstraintDescription: IP address parameter must be in the form x.x.x.x
+    Type: String
+    Default: 10.0.32.5
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$
+
+  ObserverIPAddress:
+    Description: This must be a valid IP address for private subnet 3
+    ConstraintDescription: IP address parameter must be in the form x.x.x.x
+    Type: String
+    Default: 10.0.64.5
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$
+
+  BastionAMIOS:
+    Description: Operating System and version for Bastion nodes.
+    Type: String
+    Default: Red-Hat-Enterprise-Linux-8-HVM
+    AllowedValues:
+      - Red-Hat-Enterprise-Linux-8-HVM
+
+  BastionInstanceType:
+    Description: Amazon EC2 instance type for the bastion host
+    Type: String
+    Default: t3.micro
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+
+  NumBastionHosts:
+    Description: The number of bastion hosts to create. The maximum number is two.
+    Type: Number
+    Default: 1
+    AllowedValues:
+      - 1
+      - 2
+
+  TiberoAMIOS:
+    Description: Operating System and version for database nodes.
+    Type: String
+    Default: Red-Hat-Enterprise-Linux-8-HVM
+    AllowedValues:
+      - Red-Hat-Enterprise-Linux-8-HVM
+
+  PrimaryDBInstanceType:
+    Description: Amazon EC2 instance type for the Tibero DB host
+    Type: String
+    Default: t3.xlarge
+    AllowedValues:
+      - t2.large
+      - t2.xlarge
+      - t2.2xlarge
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m4.16xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - m5.12xlarge
+      - m5.16xlarge
+      - m5.24xlarge
+      - r5.large
+      - r5.xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.8xlarge
+      - r5.12xlarge
+      - r5.16xlarge
+      - r5.24xlarge
+
+  StandbyDBInstanceType:
+    Description: Amazon EC2 instance type for the Tibero Standby DB host
+    Type: String
+    Default: t3.xlarge
+    AllowedValues:
+      - t2.large
+      - t2.xlarge
+      - t2.2xlarge
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m4.16xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - m5.12xlarge
+      - m5.16xlarge
+      - m5.24xlarge
+      - r5.large
+      - r5.xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.8xlarge
+      - r5.12xlarge
+      - r5.16xlarge
+      - r5.24xlarge
+
+  ObserverInstanceType:
+    Description: Amazon EC2 instance type for the Tibero Observer host
+    Type: String
+    Default: t3.xlarge
+    AllowedValues:
+      - t2.large
+      - t2.xlarge
+      - t3.large
+      - t3.xlarge
+      - m4.large
+      - m4.xlarge
+      - m5.large
+      - m5.xlarge
+      - r5.large
+      - r5.xlarge
+
+  PrimaryEBSVolumeType:
+    Description: EBS volume type for Tibero Database of Primary DB
+    Type: String
+    Default: io1
+    AllowedValues:
+      - io1
+      - io2
+
+  PrimaryEBSVolumeSize:
+    Description: Enter the number of Gigabytes of EBS volume (Primary Database) (Iops to volume size ratio is less than 50 (ex.PrimaryEBSVolumeIOPS/PrimaryEBSVolumeSize < 50))
+    ConstraintDescription: Must be a valid number from 4 GiB to 16000 GiB
+    Type: Number
+    Default: '100'
+    MaxValue: '16000'
+    MinValue: '4'
+
+  PrimaryEBSVolumeIOPS:
+    Description: IOPS per EBS volume, only for io1 and io2 type (Primary Database) (Iops to volume size ratio is less than 50 (ex.PrimaryEBSVolumeIOPS/PrimaryEBSVolumeSize < 50))
+    ConstraintDescription: Must be a valid number from 100 IOPS to 64000 IOPS
+    Type: Number
+    Default: '3000'
+    MaxValue: '64000'
+    MinValue: '100'
+
+  StandbyEBSVolumeType:
+    Description: EBS volume type for Tibero Database of Standby DB
+    Type: String
+    Default: io1
+    AllowedValues:
+      - io1
+      - io2
+
+  StandbyEBSVolumeIOPS:
+    Description: IOPS per EBS volume, only for io1 and io2 type (Standby Database) (Iops to volume size ratio is less than 50 (ex.StandyEBSVolumeIOPS/PrimaryEBSVolumeSize < 50))
+    ConstraintDescription: Must be a valid number from 100 IOPS to 64000 IOPS
+    Type: Number
+    Default: '3000'
+    MaxValue: '64000'
+    MinValue: '100'
+
+  SystemDatafileSize:
+    Description: System Datafile Size for Database(10 ~ 2000)(MB)
+    ConstraintDescription: Must be a valid number from 10(MB) SIZE to 2000(MB) SIZE
+    Type: Number
+    Default: '1000'
+    MaxValue: '2000'
+    MinValue: '10'
+
+  SyssubDatafileSize:
+    Description: SYSSUB Datafile Size for Database(10 ~ 2000)(MB)
+    ConstraintDescription: Must be a valid number from 10(MB) SIZE to 2000(MB) SIZE
+    Type: Number
+    Default: '1000'
+    MaxValue: '2000'
+    MinValue: '10'
+
+  UserTablespaceDatafileSize:
+    Description: User Tablespace Datafile Size for Database(10 ~ 2000)(MB)
+    ConstraintDescription: Must be a valid number from 10(MB) SIZE to 2000(MB) SIZE
+    Type: Number
+    Default: '1000'
+    MaxValue: '2000'
+    MinValue: '10'
+
+  TemporaryTablespaceDatafileSize:
+    Description: Temporary Tablespace Datafile Size for Database(10 ~ 2000)(MB)
+    ConstraintDescription: Must be a valid number from 10(MB) SIZE to 2000(MB) SIZE
+    Type: Number
+    Default: '1000'
+    MaxValue: '2000'
+    MinValue: '10'
+
+  UndoTablespaceDatafileSize:
+    Description: Undo Tablespace Datafile Size for Database(10 ~ 2000)(MB)
+    ConstraintDescription: Must be a valid number from 10(MB) SIZE to 2000(MB) SIZE
+    Type: Number
+    Default: '1000'
+    MaxValue: '2000'
+    MinValue: '10'
+
+  RedoLogfileSize:
+    Description: Redo Log file Size for Database(10 ~ 2000)(MB)
+    ConstraintDescription: Must be a valid number from 10(MB) SIZE to 2000(MB) SIZE
+    Type: Number
+    Default: '1000'
+    MaxValue: '2000'
+    MinValue: '10'
+
+  RedoLogGroup:
+    Description: The number of Redo Log Group(3 ~ 6)
+    Type: Number
+    Default: '3'
+    MaxValue: '6'
+    MinValue: '3'
+
+  RedoLogDuplicate:
+    Description: Redo Log Duplicate(Y/N)
+    Type: String
+    Default: N
+    AllowedValues:
+      - Y
+      - N
+
+  QSS3BucketName:
+    AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
+    ConstraintDescription: Quick Start bucket name can include numbers, lowercase
+      letters, uppercase letters, and hyphens (-). It cannot start or end with a hyphen
+      (-).
+    Default: aws-quickstart
+    Description: S3 bucket name for the Quick Start assets. This string can include
+      numbers, lowercase letters, uppercase letters, and hyphens (-). It cannot start
+      or end with a hyphen (-).
+    Type: String
+
+  QSS3KeyPrefix:
+    AllowedPattern: ^[0-9a-zA-Z-/.]*$
+    ConstraintDescription: Quick Start key prefix can include numbers, lowercase letters,
+      uppercase letters, hyphens (-), periods (.) and forward slash (/).
+    Default: quickstart-tmax-tibero/
+    Description: S3 key prefix for the Quick Start assets. Quick Start key prefix
+      can include numbers, lowercase letters, uppercase letters, hyphens (-), periods (.) and
+      forward slash (/).
+    Type: String
+
+  QSS3BucketRegion:
+    Default: 'us-west-2'
+    Description: Region where the Quick Start S3 bucket (QSS3BucketName) is
+        hosted. When using your own bucket, you must specify this value.
+    Type: String
+
+  EventBusName:
+    AllowedPattern: ^[0-9a-zA-Z-]+([0-9a-zA-Z-]+)*$
+    ConstraintDescription: EventBus name can include numbers, lowercase letters, uppercase
+      letters, hyphens (-).
+    Default: 'quickstarts-eventbus'
+    Description: Name of your AWS EventBus for Lambda Function (e.g., custom-eventbus)
+    Type: String
+
+  VPCID:
+    Type: "AWS::EC2::VPC::Id"
+    Description: ID of your existing VPC (e.g., vpc-0343606e).
+
+Conditions:
+  UsingDefaultBucket: !Equals [!Ref QSS3BucketName, 'aws-quickstart']
+
+Resources:
+  DatabaseStack:
+    Type: AWS::CloudFormation::Stack
+    Properties:
+      TemplateURL:
+        !Sub
+          - 'https://${S3Bucket}.s3.${S3Region}.${AWS::URLSuffix}/${QSS3KeyPrefix}templates/tmax-database.template.yaml'
+          - S3Region: !If [UsingDefaultBucket, !Ref 'AWS::Region', !Ref QSS3BucketRegion]
+            S3Bucket: !If [UsingDefaultBucket, !Sub '${QSS3BucketName}-${AWS::Region}', !Ref QSS3BucketName]
+      Parameters:
+        VPCID: !Ref VPCID
+        RemoteAccessCIDR: !Ref 'RemoteAccessCIDR'
+        PrivateSubnet1ID: !Ref PrivateSubnet1ID
+        PublicSubnet1ID: !Ref PublicSubnet1ID
+        PrivateSubnet2ID: !Ref PrivateSubnet2ID
+        PublicSubnet2ID: !Ref PublicSubnet2ID
+        PrivateSubnet3ID: !Ref PrivateSubnet3ID
+        #PublicSubnet3ID: !GetAtt 'VPCStack.Outputs.PublicSubnet3ID'
+        KeyPairName: !Ref 'KeyPairName'
+        TiberoAMIOS: !Ref 'TiberoAMIOS'
+        PrimaryDBInstanceType: !Ref 'PrimaryDBInstanceType'
+        StandbyDBInstanceType: !Ref 'StandbyDBInstanceType'
+        ObserverInstanceType: !Ref 'ObserverInstanceType'
+        PrimaryIPAddress: !Ref 'PrimaryIPAddress'
+        StandbyIPAddress: !Ref 'StandbyIPAddress'
+        ObserverIPAddress: !Ref 'ObserverIPAddress'
+        TiberoBinaryName: !Ref 'TiberoBinaryName'
+        DatabaseName: !Ref 'DatabaseName'
+        DatabaseDirectoryName: !Ref 'DatabaseDirectoryName'
+        DatabaseUserID: !Ref 'DatabaseUserID'
+        DatabaseUserPassword: !Ref 'DatabaseUserPassword'
+        DatabasePort: !Ref 'DatabasePort'
+        DatabaseLocalPort: !Ref 'DatabaseLocalPort'
+        DatabaseStandbyLogPort: !Ref 'DatabaseStandbyLogPort'
+        TiberoSID: !Ref 'TiberoSID'
+        PrimaryClusterManagerSID: !Ref 'PrimaryClusterManagerSID'
+        StandbyClusterManagerSID: !Ref 'StandbyClusterManagerSID'
+        ClusterManagerPort: !Ref 'ClusterManagerPort'
+        ClusterManagerLocalPort: !Ref 'ClusterManagerLocalPort'
+        ObserverSID: !Ref 'ObserverSID'
+        ObserverPort: !Ref 'ObserverPort'
+        CharacterSet: !Ref 'CharacterSet'
+        PrimaryEBSVolumeType: !Ref 'PrimaryEBSVolumeType'
+        PrimaryEBSVolumeSize: !Ref 'PrimaryEBSVolumeSize'
+        PrimaryEBSVolumeIOPS: !Ref 'PrimaryEBSVolumeIOPS'
+        StandbyEBSVolumeType: !Ref 'StandbyEBSVolumeType'
+        StandbyEBSVolumeIOPS: !Ref 'StandbyEBSVolumeIOPS'
+        SystemDatafileSize: !Ref 'SystemDatafileSize'
+        SyssubDatafileSize: !Ref 'SyssubDatafileSize'
+        UserTablespaceDatafileSize: !Ref 'UserTablespaceDatafileSize'
+        TemporaryTablespaceDatafileSize: !Ref 'TemporaryTablespaceDatafileSize'
+        UndoTablespaceDatafileSize: !Ref 'UndoTablespaceDatafileSize'
+        RedoLogfileSize: !Ref 'RedoLogfileSize'
+        RedoLogGroup: !Ref 'RedoLogGroup'
+        RedoLogDuplicate: !Ref 'RedoLogDuplicate'
+        BastionAMIOS: !Ref 'BastionAMIOS'
+        BastionInstanceType: !Ref 'BastionInstanceType'
+        NumBastionHosts: !Ref 'NumBastionHosts'
+        QSS3BucketName: !Ref 'QSS3BucketName'
+        QSS3KeyPrefix: !Ref 'QSS3KeyPrefix'
+        #QSS3BucketRegion: !Ref 'QSS3BucketRegion'
+        EventBusName: !Ref 'EventBusName'
