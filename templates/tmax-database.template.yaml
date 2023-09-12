@@ -2264,3 +2264,4 @@ Mappings:
       RHEL8HVM: ami-0c76f6aa35a67629c
     us-west-2:
       RHEL8HVM: ami-0a22b81e58d7997d7
+Outputs: {}
