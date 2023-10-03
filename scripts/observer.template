@@ -1,0 +1,12 @@
+# tip file generated from /home/donghee/cloud/aws/aqs/tip/config/observer.template (Tue May  4 11:08:54 KST 2021)
+#-------------------------------------------------------------------------------
+#
+# Observer initialization parameter
+#
+#-------------------------------------------------------------------------------
+
+CM_NAME=@OBSERVER_NAME@
+CM_MODE_OBSERVER=@CM_MODE_OBSERVER@
+CM_OBSERVER_PORT=@OBSERVER_PORT@
+CM_UI_PORT=@CM_UIPORT@
+

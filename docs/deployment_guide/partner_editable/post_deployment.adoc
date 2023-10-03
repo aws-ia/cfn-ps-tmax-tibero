@@ -1,3 +1,36 @@
-// Include any postdeployment steps here, such as steps necessary to test that the deployment was successful. If there are no postdeployment steps, leave this file empty.
+== Resources
 
-== Postdeployment steps
+=== AWS services
+
+[cols="1,2"]
+|===
+|AWS CloudFormation
+a|* https://aws.amazon.com/documentation/cloudformation/[AWS CloudFormation Documentation^]
+* https://docs.aws.amazon.com/AWSCloudFormation/latest/UserGuide/cfn-helper-scripts-reference.html[CloudFormation helper scripts reference^]
+
+|Amazon Elastic Block Store (Amazon EBS)
+a|* https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/AmazonEBS.html[Amazon EBS User Guide for Linux Instances^]
+* https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSVolumeTypes.html[Amazon EBS volume types^]
+* https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/EBSOptimized.html[Amazon EBS–optimized instances^]
+
+|AWS Command Line Interface (AWS CLI)
+a| https://docs.aws.amazon.com/cli/latest/userguide/installing.html#install-with-pip[AWS CLI User Guide for Version 2^]
+
+|Amazon EC2
+a| https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/[Amazon EC2 User Guide for Linux Instances^]
+
+|Amazon Route 53
+a| https://aws.amazon.com/documentation/route53/[Amazon Route 53 Documentation^]
+
+|Amazon S3
+a| https://aws.amazon.com/documentation/s3/[Amazon Simple Storage Service Documentation^]
+
+|Amazon VPC
+a| https://aws.amazon.com/documentation/vpc/[Amazon Virtual Private Cloud Documentation^]
+
+|===
+
+
+=== Tibero
+
+https://technet.tmaxsoft.com/en/front/download/findDownloadList.do?cmProductCode=0301[Tibero Database Installation Guide^]

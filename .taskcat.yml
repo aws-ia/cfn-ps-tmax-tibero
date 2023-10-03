@@ -1,33 +1,29 @@
 project:
-  name: cfn-sample-template
-  owner: quickstart@amazon.com
-  package_lambda: false
-  regions:
-  - ap-northeast-1
-  - ap-northeast-2
-  - ap-southeast-1
-  - ap-southeast-2
-  - eu-central-1
-  - eu-west-1
-  - sa-east-1
-  - us-east-1
-  - us-west-1
-  - us-west-2
+  name: cfn-ps-tmax-tibero
+  owner: quickstart-eng@amazon.com
+  s3_regional_buckets: true
+  template: templates/tmax-entrypoint.template.yaml
+
 tests:
-  sample:
+  deploy-tibero-1region-3az:
     parameters:
-      Param1: 'Inputs to Stack'
-      # Examples: of other taskcat dynamic input parameters for more into see http://taskcat.io
-      #
-      #      AvailabilityZones: $[taskcat_genaz_3]
-      #      ByteValue: 1
-      #      PasswordA: $[taskcat_genpass_8A]
-      #      PasswordB: $[taskcat_genpass_32S]
-      #      RandomNumber: $[taskcat_random-numbers]
-      #      RandomString: $[taskcat_random-string]
-      #      StackName: TestStack
-      #      UUID: $[taskcat_genuuid]
-      #
+      AvailabilityZones: $[taskcat_genaz_3]
+      QSS3BucketName: $[taskcat_autobucket]
+      QSS3BucketRegion: $[taskcat_current_region]
+      RemoteAccessCIDR: 10.0.0.0/16
+      DatabaseUserID: $[taskcat_genpass_6A]
+      DatabaseUserPassword: P#$[taskcat_genpass_12A]
+      KeyPairName: override
+      PrivateSubnet1CIDR: 10.0.0.0/19
+      PrivateSubnet2CIDR: 10.0.32.0/19
+      PrivateSubnet3CIDR: 10.0.64.0/19
+      PublicSubnet1CIDR: 10.0.128.0/20
+      PublicSubnet2CIDR: 10.0.144.0/20
+      PublicSubnet3CIDR: 10.0.160.0/20
+      PrimaryIPAddress: 10.0.20.5
+      StandbyIPAddress: 10.0.32.5
+      ObserverIPAddress: 10.0.64.5
+      VPCCIDR: 10.0.0.0/16
     regions:
-    - us-east-2
-    template: templates/another-workload.template.yaml
+      - us-west-2
+      - us-east-1

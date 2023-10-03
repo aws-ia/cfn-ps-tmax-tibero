@@ -1,0 +1,2268 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: AWS CloudFormation template that deploys Tibero in TSC-Obs mode. (qs-1t1mloore)
+Metadata:
+  cfn-lint:
+    config:
+      ignore_checks:
+        - W9006
+        - W9002
+        - W9003
+        - W1020
+        - W4002
+  QuickStartDocumentation:
+    EntrypointName: Launch into an existing VPC and Tmax database
+  AWS::CloudFormation::Interface:
+    ParameterGroups:
+      - Label:
+          default: Network configuration
+        Parameters:
+          - VPCID
+          - RemoteAccessCIDR
+          - PrivateSubnet1ID
+          - PublicSubnet1ID
+          - PrivateSubnet2ID
+          - PublicSubnet2ID
+          - PrivateSubnet3ID
+      - Label:
+          default: Amazon EC2 configuration
+        Parameters:
+          - KeyPairName
+          - TiberoAMIOS
+          - PrimaryDBInstanceType
+          - StandbyDBInstanceType
+          - ObserverInstanceType
+          - PrimaryIPAddress
+          - StandbyIPAddress
+          - ObserverIPAddress
+      - Label:
+          default: Tibero database configuration
+        Parameters:
+          - TiberoBinaryName
+          - DatabaseName
+          - DatabaseDirectoryName
+          - DatabaseUserID
+          - DatabaseUserPassword
+          - DatabasePort
+          - DatabaseLocalPort
+          - DatabaseStandbyLogPort
+          - TiberoSID
+          - PrimaryClusterManagerSID
+          - StandbyClusterManagerSID
+          - ClusterManagerPort
+          - ClusterManagerLocalPort
+          - ObserverSID
+          - ObserverPort
+          - CharacterSet
+          - PrimaryEBSVolumeType
+          - PrimaryEBSVolumeSize
+          - PrimaryEBSVolumeIOPS
+          - StandbyEBSVolumeType
+          - StandbyEBSVolumeIOPS
+          - SystemDatafileSize
+          - SyssubDatafileSize
+          - UserTablespaceDatafileSize
+          - TemporaryTablespaceDatafileSize
+          - UndoTablespaceDatafileSize
+          - RedoLogfileSize
+          - RedoLogGroup
+          - RedoLogDuplicate
+      - Label:
+          default: Linux bastion configuration
+        Parameters:
+          - BastionAMIOS
+          - BastionInstanceType
+          - NumBastionHosts
+      - Label:
+          default: S3 bucket configuration
+        Parameters:
+          - QSS3BucketName
+          - QSS3KeyPrefix
+      - Label:
+          default: Lambda function configuration
+        Parameters:
+          - EventBusName
+    ParameterLabels:
+      KeyPairName:
+        default: Key-pair name
+      CharacterSet:
+        default: Character set
+      TiberoBinaryName:
+        default: Tibero binary name
+      DatabaseName:
+        default: Database name
+      DatabaseDirectoryName:
+        default: Database directory name
+      DatabaseUserID:
+        default: Database user ID
+      DatabaseUserPassword:
+        default: Database user password
+      DatabasePort:
+        default: Database port number
+      DatabaseStandbyLogPort:
+        default: Database standby log port number
+      DatabaseLocalPort:
+        default: Database local port number
+      TiberoSID:
+        default: Tibero security identifier
+      PrimaryClusterManagerSID:
+        default: Primary Tibero Cluster Manager security identifier
+      StandbyClusterManagerSID:
+        default: Standby Tibero Cluster Manager security identifier
+      ClusterManagerPort:
+        default: Tibero Cluster Manager port number
+      ClusterManagerLocalPort:
+        default: Tibero Cluster Manager local port number
+      ObserverSID:
+        default: Tibero Observer security identifier
+      ObserverPort:
+        default: Observer port number
+      RemoteAccessCIDR:
+        default: Allowed bastion external access CIDR
+      VPCID:
+        default: VPC ID
+      PrivateSubnet1ID:
+        default: Private subnet 1 CIDR
+      PublicSubnet2ID:
+        default: Public subnet 2 CIDR
+      PrivateSubnet2ID:
+        default: Private subnet 2 CIDR
+      PrivateSubnet3ID:
+        default: Private subnet 3 CIDR
+      PrimaryIPAddress:
+        default: Primary database private IP address
+      StandbyIPAddress:
+        default: Standby database private IP address
+      ObserverIPAddress:
+        default: Observer private IP address
+      BastionAMIOS:
+        default: Bastion operating system
+      BastionInstanceType:
+        default: Bastion instance type
+      NumBastionHosts:
+        default: Number of bastion hosts
+      TiberoAMIOS:
+        default: Database operating system
+      PrimaryDBInstanceType:
+        default: Primary database instance type
+      StandbyDBInstanceType:
+        default: Standby database instance type
+      ObserverInstanceType:
+        default: Observer instance type
+      PrimaryEBSVolumeType:
+        default: Primary EBS volume type
+      PrimaryEBSVolumeSize:
+        default: Primary EBS volume size
+      PrimaryEBSVolumeIOPS:
+        default: Primary EBS volume IOPS
+      StandbyEBSVolumeType:
+        default: Standby EBS volume type
+      StandbyEBSVolumeIOPS:
+        default: Standby EBS volume IOPS
+      SystemDatafileSize:
+        default: System datafile size
+      SyssubDatafileSize:
+        default: SYSSUB datafile size
+      UserTablespaceDatafileSize:
+        default: User tablespace datafile size
+      TemporaryTablespaceDatafileSize:
+        default: Temporary tablespace datafile size
+      UndoTablespaceDatafileSize:
+        default: Undo tablespace datafile size
+      RedoLogfileSize:
+        default: Redo log file Size
+      RedoLogGroup:
+        default: Redo log group
+      RedoLogDuplicate:
+        default: Redo log duplicate
+      QSS3BucketName:
+        default: Quick Start S3 bucket name
+      QSS3KeyPrefix:
+        default: Quick Start S3 key prefix
+      EventBusName:
+        default: EventBus name
+Parameters:
+  KeyPairName:
+    Description: Name of an existing EC2 key pair to enable SSH access to the instance.
+    ConstraintDescription: Must be the name of an existing EC2 key pair.
+    Type: AWS::EC2::KeyPair::KeyName
+  CharacterSet:
+    Description: Character set for the Tibero database.
+    Type: String
+    Default: MSWIN949
+    AllowedValues:
+      - AL32UTF8
+      - AR8ISO8859P6
+      - AR8MSWIN1256
+      - BLT8ISO8859P13
+      - BLT8MSWIN1257
+      - CL8ISO8859P5
+      - CL8MSWIN1251
+      - EE8ISO8859P2
+      - EE8MSWIN1250
+      - EL8ISO8859P7
+      - EL8MSWIN1253
+      - IW8ISO8859P8
+      - IW8MSWIN1255
+      - JA16EUC
+      - JA16EUCTILDE
+      - JA16SJIS
+      - JA16SJISTILDE
+      - KO16MSWIN949
+      - MSWIN949
+      - NE8ISO8859P10
+      - NEE8ISO8859P4
+      - TH8TISASCII
+      - TR8MSWIN1254
+      - US7ASCII
+      - UTF8
+      - VN8MSWIN1258
+      - WE8ISO8859P1
+      - WE8ISO8859P15
+      - WE8ISO8859P9
+      - WE8MSWIN1252
+      - ZHS16GBK
+      - ZHT16HKSCS
+      - ZHT16MSWIN950
+      - ZHT32EUC
+  TiberoBinaryName:
+    Description: Tibero binary name.
+    Type: String
+    Default: tibero6
+  DatabaseName:
+    Description: Name of your database.
+    ConstraintDescription: No special characters, 3–8 characters.
+    Type: String
+    Default: Tibero
+    AllowedPattern: ([A-Za-z0-9-]{3,8})
+  DatabaseDirectoryName:
+    Description: Directory name where the Tibero database will be created.
+    Type: String
+    Default: database
+  DatabaseUserID:
+    Description: Your database user ID.
+    ConstraintDescription: No special characters, 3–10 characters.
+    Type: String
+    AllowedPattern: ([A-Za-z0-9-]{3,10})
+  DatabaseUserPassword:
+    Description: Database password, 3–20 characters.
+    ConstraintDescription: Your database password, 3–20 characters.
+    NoEcho: 'true'
+    Type: String
+    AllowedPattern: ([A-Za-z0-9_#$]{3,20})
+  DatabasePort:
+    Description: Tibero database listener port number (1024–65535).
+    ConstraintDescription: Avoid numbers of database local port, database standby log port, cluster manager port, cluster manager local port, and observer port (1024–65535).
+    Type: Number
+    Default: 9400
+    MinValue: 1024
+    MaxValue: 65535
+  DatabaseLocalPort:
+    Description: Tibero database local port number (1024–65535).
+    ConstraintDescription: Avoid numbers of database port, database standby log port, cluster manager port, cluster manager local port, and observer port (1024–65535).
+    Type: Number
+    Default: 9450
+    MinValue: 1024
+    MaxValue: 65535
+  DatabaseStandbyLogPort:
+    Description: Tibero database standby log port number (1024–65535).
+    ConstraintDescription: Avoid numbers of database port, database local port, cluster manager port, cluster manager local port, and observer port (1024–65535).
+    Type: Number
+    Default: 9404
+    MinValue: 1024
+    MaxValue: 65535
+  TiberoSID:
+    Description: Tibero security identifier.
+    Type: String
+    Default: tibero
+  PrimaryClusterManagerSID:
+    Description: Primary Tibero Cluster Manager security identifier.
+    ConstraintDescription: Set to a different ID than StandbyClusterManagerSID.
+    Type: String
+    Default: cmp
+  StandbyClusterManagerSID:
+    Description: Standby Tibero Cluster Manager security identifier.
+    ConstraintDescription: Set to a different ID than PrimaryClusterManagerSID.
+    Type: String
+    Default: cms
+  ClusterManagerPort:
+    Description: Tibero Cluster Manager port number (1024–65535). This port number is used for sending messages to CM when managing resources such as Tibero and Observer.
+    ConstraintDescription: Avoid numbers of database port, database local port, database standby log port, cluster manager local port, and observer port (1024–65535).
+    Type: Number
+    Default: 9500
+    MinValue: 1024
+    MaxValue: 65535
+  ClusterManagerLocalPort:
+    Description: Tibero Cluster Manager port number (1024–65535). This port number is used for sending messages to CM when managing resources such as Tibero and Observer.
+    ConstraintDescription: Avoid numbers of database port, database local port, database standby log port, cluster manager port, and observer port (1024–65535).
+    Type: Number
+    Default: 9550
+    MinValue: 1024
+    MaxValue: 65535
+  ObserverSID:
+    Description: Tibero Observer security identifier.
+    Type: String
+    Default: obs
+  ObserverPort:
+    Description: Observer port number (1024–65535).
+    ConstraintDescription: Avoid numbers of database port, database local port, database standby log port, cluster manager port, and cluster manager local port (1024–65535).
+    Type: Number
+    Default: 9600
+    MinValue: 1024
+    MaxValue: 65535
+  RemoteAccessCIDR:
+    Description: Allowed CIDR block for external SSH access to the bastion instance.
+    ConstraintDescription: CIDR block parameter must be in the form x.x.x.x/x
+    Type: String
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])(\/([0-9]|[1-2][0-9]|3[0-2]))$
+  VPCID:
+    Description: CIDR block for the Amazon VPC to create for Tibero deployment.
+    Type: String
+  PublicSubnet1ID:
+    Description: CIDR block for the public subnet 1 located in Availability Zone 1.
+    Type: String
+  PrivateSubnet1ID:
+    Description: CIDR block for the private subnet 1 located in Availability Zone 1.
+    Type: String
+  PublicSubnet2ID:
+    Description: CIDR block for the public subnet 2 located in Availability Zone 2.
+    Type: String
+  PrivateSubnet2ID:
+    Description: CIDR block for the private subnet 2 located in Availability Zone 2.
+    Type: String
+  PrivateSubnet3ID:
+    Description: CIDR block for the private subnet 3 located in Availability Zone 3.
+    Type: String
+  PrimaryIPAddress:
+    Description: This must be a valid IP address for private subnet 1.
+    ConstraintDescription: IP address parameter must be in the form x.x.x.x
+    Type: String
+    Default: 10.0.0.5
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$
+  StandbyIPAddress:
+    Description: This must be a valid IP address for private subnet 2.
+    ConstraintDescription: IP address parameter must be in the form x.x.x.x
+    Type: String
+    Default: 10.0.32.5
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$
+  ObserverIPAddress:
+    Description: This must be a valid IP address for private subnet 3.
+    ConstraintDescription: IP address parameter must be in the form x.x.x.x
+    Type: String
+    Default: 10.0.64.5
+    AllowedPattern: ^(([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])\.){3}([0-9]|[1-9][0-9]|1[0-9]{2}|2[0-4][0-9]|25[0-5])$
+  BastionAMIOS:
+    Description: Operating system and version for bastion nodes.
+    Type: String
+    Default: Red-Hat-Enterprise-Linux-8-HVM
+    AllowedValues:
+      - Red-Hat-Enterprise-Linux-8-HVM
+  BastionInstanceType:
+    Description: Amazon EC2 instance type for the bastion host.
+    Type: String
+    Default: t3.micro
+    AllowedValues:
+      - t3.micro
+      - t3.small
+      - t3.medium
+      - t3.large
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+  NumBastionHosts:
+    Description: Number of bastion hosts to create. The maximum number is two.
+    Type: Number
+    Default: 1
+    AllowedValues:
+      - 1
+      - 2
+  TiberoAMIOS:
+    Description: Operating system and version for database nodes.
+    Type: String
+    Default: Red-Hat-Enterprise-Linux-8-HVM
+    AllowedValues:
+      - Red-Hat-Enterprise-Linux-8-HVM
+  PrimaryDBInstanceType:
+    Description: Amazon EC2 instance type for the Tibero DB host.
+    Type: String
+    Default: t3.xlarge
+    AllowedValues:
+      - t2.large
+      - t2.xlarge
+      - t2.2xlarge
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m4.16xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - m5.12xlarge
+      - m5.16xlarge
+      - m5.24xlarge
+      - r5.large
+      - r5.xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.8xlarge
+      - r5.12xlarge
+      - r5.16xlarge
+      - r5.24xlarge
+  StandbyDBInstanceType:
+    Description: Amazon EC2 instance type for the Tibero standby DB host.
+    Type: String
+    Default: t3.xlarge
+    AllowedValues:
+      - t2.large
+      - t2.xlarge
+      - t2.2xlarge
+      - t3.large
+      - t3.xlarge
+      - t3.2xlarge
+      - m4.large
+      - m4.xlarge
+      - m4.2xlarge
+      - m4.4xlarge
+      - m4.10xlarge
+      - m4.16xlarge
+      - m5.large
+      - m5.xlarge
+      - m5.2xlarge
+      - m5.4xlarge
+      - m5.8xlarge
+      - m5.12xlarge
+      - m5.16xlarge
+      - m5.24xlarge
+      - r5.large
+      - r5.xlarge
+      - r5.2xlarge
+      - r5.4xlarge
+      - r5.8xlarge
+      - r5.12xlarge
+      - r5.16xlarge
+      - r5.24xlarge
+  ObserverInstanceType:
+    Description: Amazon EC2 instance type for the Tibero observer host.
+    Type: String
+    Default: t3.xlarge
+    AllowedValues:
+      - t2.large
+      - t2.xlarge
+      - t3.large
+      - t3.xlarge
+      - m4.large
+      - m4.xlarge
+      - m5.large
+      - m5.xlarge
+      - r5.large
+      - r5.xlarge
+  PrimaryEBSVolumeType:
+    Description: EBS volume type for Tibero database of primary DB.
+    Type: String
+    Default: io1
+    AllowedValues:
+      - io1
+      - io2
+  PrimaryEBSVolumeSize:
+    Description: Number of gigabytes of EBS volume (primary database). IOPS to volume size ratio is less than 50 (for example, PrimaryEBSVolumeIOPS/PrimaryEBSVolumeSize < 50).
+    ConstraintDescription: Must be a valid number from 4 GiB to 16000 GiB.
+    Type: Number
+    Default: '100'
+    MaxValue: '16000'
+    MinValue: '4'
+  PrimaryEBSVolumeIOPS:
+    Description: IOPS per EBS volume, only for io1 and io2 type (primary database). IOPS to volume size ratio is less than 50 (for example, PrimaryEBSVolumeIOPS/PrimaryEBSVolumeSize < 50).
+    ConstraintDescription: Must be a valid number from 100 IOPS to 64000 IOPS.
+    Type: Number
+    Default: '3000'
+    MaxValue: '64000'
+    MinValue: '100'
+  StandbyEBSVolumeType:
+    Description: EBS volume type for Tibero database of standby DB.
+    Type: String
+    Default: io1
+    AllowedValues:
+      - io1
+      - io2
+  StandbyEBSVolumeIOPS:
+    Description: IOPS per EBS volume, only for io1 and io2 type (standby database). IOPS to volume size ratio is less than 50 (for example, StandyEBSVolumeIOPS/PrimaryEBSVolumeSize < 50).
+    ConstraintDescription: Must be a valid number from 100 IOPS to 64000 IOPS.
+    Type: Number
+    Default: '3000'
+    MaxValue: '64000'
+    MinValue: '100'
+  SystemDatafileSize:
+    Description: System datafile size for database (10–2000 MB).
+    ConstraintDescription: Must be a valid number from 10 to 2000.
+    Type: Number
+    Default: '1000'
+    MaxValue: '2000'
+    MinValue: '10'
+  SyssubDatafileSize:
+    Description: SYSSUB datafile size for database (10–2000 MB).
+    ConstraintDescription: Must be a valid number from 10 to 2000.
+    Type: Number
+    Default: '1000'
+    MaxValue: '2000'
+    MinValue: '10'
+  UserTablespaceDatafileSize:
+    Description: User tablespace datafile size for database (10–2000 MB).
+    ConstraintDescription: Must be a valid number from 10 to 2000.
+    Type: Number
+    Default: '1000'
+    MaxValue: '2000'
+    MinValue: '10'
+  TemporaryTablespaceDatafileSize:
+    Description: Temporary tablespace datafile size for database (10–2000 MB).
+    ConstraintDescription: Must be a valid number from 10 to 2000.
+    Type: Number
+    Default: '1000'
+    MaxValue: '2000'
+    MinValue: '10'
+  UndoTablespaceDatafileSize:
+    Description: Undo tablespace datafile size for database (10–2000 MB).
+    ConstraintDescription: Must be a valid number from 10 to 2000.
+    Type: Number
+    Default: '1000'
+    MaxValue: '2000'
+    MinValue: '10'
+  RedoLogfileSize:
+    Description: Redo log file size for database (10–2000 MB).
+    ConstraintDescription: Must be a valid number from 10 to 2000.
+    Type: Number
+    Default: '1000'
+    MaxValue: '2000'
+    MinValue: '10'
+  RedoLogGroup:
+    Description: Number of redo log groups (3–6).
+    Type: Number
+    Default: '3'
+    MaxValue: '6'
+    MinValue: '3'
+  RedoLogDuplicate:
+    Description: Redo log duplicate.
+    Type: String
+    Default: false
+    AllowedValues:
+      - true
+      - false
+  QSS3BucketName:
+    AllowedPattern: ^[0-9a-zA-Z]+([0-9a-zA-Z-]*[0-9a-zA-Z])*$
+    ConstraintDescription: The S3 bucket name can include numbers, lowercase letters, uppercase letters, and hyphens (-), but it cannot start or end with a hyphen.
+    Default: aws-ia-us-east-1
+    Description: Name of the S3 bucket for your copy of the deployment assets. Keep the default name unless you are customizing the template. Changing the name updates code references to point to a new
+      location.
+    Type: String
+  QSS3KeyPrefix:
+    AllowedPattern: ^[0-9a-zA-Z-/.]*$
+    ConstraintDescription: The S3 key prefix can include numbers, lowercase letters, uppercase letters, hyphens (-), and forward slashes (/). End the prefix with a forward slash.
+    Default: cfn-ps-tmax-tibero/
+    Description: S3 key prefix that is used to simulate a folder for your copy of the deployment assets. Keep the default prefix unless you are customizing the template. Changing the prefix updates code
+      references to point to a new location.
+    Type: String
+  EventBusName:
+    AllowedPattern: ^[0-9a-zA-Z-]+([0-9a-zA-Z-]+)*$
+    ConstraintDescription: EventBus name can include numbers, lowercase letters, uppercase. letters, hyphens (-).
+    Description: Name of your AWS EventBus for Lambda function (for example, custom-eventbus).
+    Type: String
+    Default: tmaxEventBus
+Conditions:
+  UsingDefaultBucket:
+    Fn::Equals:
+      - Ref: QSS3BucketName
+      - aws-ia-us-east-1
+Resources:
+  InstanceRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResourced
+          ignore_reasons:
+            EIAMPolicyWildcardResource: Resource '*' at is by design.
+    Properties:
+      RoleName:
+        Fn::Sub:
+          - tmaxInstanceRole-${StackID}
+          - StackID:
+              Fn::Select:
+                - 2
+                - Fn::Split:
+                    - /
+                    - Ref: AWS::StackId
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Effect: Allow
+      Path: /
+      ManagedPolicyArns:
+        - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonSSMFullAccess
+      Policies:
+        - PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - ec2:AttachVolume
+                  - ec2:DeleteSnapshot
+                  - ec2:CreateSnapshot
+                  - ec2:ModifyInstanceAttribute
+                  - ec2:CreateVolume
+                  - ec2:CreateTags
+                  - ec2:DeleteTags
+                  - events:PutEvents
+                Resource:
+                  - Fn::Sub: arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:instance/*
+                  - Fn::Sub: arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:security-group/*
+                  - Fn::Sub: arn:${AWS::Partition}:ec2:${AWS::Region}::snapshot/*
+                  - Fn::Sub: arn:${AWS::Partition}:ec2:${AWS::Region}:${AWS::AccountId}:volume/*
+                  - Fn::Sub: arn:${AWS::Partition}:events:${AWS::Region}:${AWS::AccountId}:event-bus/${EventBusName}
+                Effect: Allow
+              - Action:
+                  - ec2:DescribeVolumes
+                  - ec2:DescribeSnapshots
+                  - ec2:DescribeInstances
+                Resource: '*'
+                Effect: Allow
+          PolicyName: tmaxDBpolicy
+        - PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - s3:GetObject
+                Resource:
+                  - Fn::Sub: arn:${AWS::Partition}:s3:::${QSS3BucketName}/*
+                  - Fn::Sub: arn:${AWS::Partition}:s3:::db25-quickstart/*
+                Effect: Allow
+          PolicyName: tmaxS3policy
+  InstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      Roles:
+        - Ref: InstanceRole
+      Path: /
+  BastionAutoScalingGroup:
+    Type: AWS::AutoScaling::AutoScalingGroup
+    Properties:
+      LaunchConfigurationName:
+        Ref: BastionLaunchConfiguration
+      VPCZoneIdentifier:
+        - Ref: PublicSubnet1ID
+        - Ref: PublicSubnet2ID
+      MinSize:
+        Ref: NumBastionHosts
+      MaxSize:
+        Ref: NumBastionHosts
+      DesiredCapacity:
+        Ref: NumBastionHosts
+      Tags:
+        - Key: Name
+          Value: Tibero Bastion
+          PropagateAtLaunch: true
+    CreationPolicy:
+      ResourceSignal:
+        Count:
+          Ref: NumBastionHosts
+        Timeout: PT30M
+      AutoScalingCreationPolicy:
+        MinSuccessfulInstancesPercent: 100
+    UpdatePolicy:
+      AutoScalingReplacingUpdate:
+        WillReplace: true
+  BastionLaunchConfiguration:
+    Type: AWS::AutoScaling::LaunchConfiguration
+    Metadata:
+      AWS::CloudFormation::Init:
+        config:
+          files:
+            /etc/cfn/cfn-hup.conf:
+              content:
+                Fn::Join:
+                  - ''
+                  - - "[main]\n"
+                    - stack=
+                    - Ref: AWS::StackId
+                    - "\n"
+                    - region=
+                    - Ref: AWS::Region
+                    - ''
+              mode: '000400'
+              owner: root
+              group: root
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content:
+                Fn::Join:
+                  - ''
+                  - - "[cfn-auto-reloader-hook]\n"
+                    - "triggers=post.update\n"
+                    - "path=Resources.BastionLaunchConfiguration.Metadata.AWS::CloudFormation::Init\n"
+                    - 'action=/opt/aws/bin/cfn-init -v '
+                    - '         --stack '
+                    - Ref: AWS::StackName
+                    - '         --resource BastionLaunchConfiguration '
+                    - '         --region '
+                    - Ref: AWS::Region
+                    - "\n"
+                    - "runas=root\n"
+            /lib/systemd/system/cfn-hup.service:
+              content:
+                Fn::Join:
+                  - ''
+                  - - "[Unit]\n"
+                    - "Description=cfn-hup daemon\n\n"
+                    - "[Service]\n"
+                    - "Type=simple\n"
+                    - "ExecStart=/opt/aws/bin/cfn-hup\n"
+                    - "Restart=always\n\n"
+                    - "[Install]\n"
+                    - WantedBy=multi-user.target
+          commands:
+            01enable_cfn_hup:
+              command: systemctl enable cfn-hup.service
+            02start_cfn_hup:
+              command: systemctl start cfn-hup.service
+    Properties:
+      InstanceType:
+        Ref: BastionInstanceType
+      ImageId:
+        Fn::FindInMap:
+          - AMIRegionMap
+          - Ref: AWS::Region
+          - Fn::FindInMap:
+              - AMINameMap
+              - Ref: BastionAMIOS
+              - Code
+      KeyName:
+        Ref: KeyPairName
+      AssociatePublicIpAddress: true
+      SecurityGroups:
+        - Ref: TiberoBastionSecurityGroup
+      UserData:
+        Fn::Base64:
+          Fn::Join:
+            - ''
+            - - "#!/bin/bash -xe\n"
+              - "yum install -y zip\n"
+              - "yum install -y python2\n"
+              - "yum install -y wget\n"
+              - "mkdir -p /opt/aws/bin\n"
+              - "wget https://s3.amazonaws.com/cloudformation-examples/aws-cfn-bootstrap-latest.tar.gz\n"
+              - "easy_install-2 --script-dir /opt/aws/bin aws-cfn-bootstrap-latest.tar.gz\n"
+              - "curl \"https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip\" -o \"awscliv2.zip\"\n"
+              - "unzip awscliv2.zip\n"
+              - "/aws/install\n"
+              - '/opt/aws/bin/cfn-init -v '
+              - '         --stack '
+              - Ref: AWS::StackName
+              - '         --resource BastionLaunchConfiguration '
+              - '         --region '
+              - Ref: AWS::Region
+              - "\n"
+              - '/opt/aws/bin/cfn-signal -e $? '
+              - '         --stack '
+              - Ref: AWS::StackName
+              - '         --resource BastionAutoScalingGroup '
+              - '         --region '
+              - Ref: AWS::Region
+              - "\n"
+  PrimaryDBInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Authentication:
+        S3AccessCreds:
+          type: S3
+          buckets:
+            - Fn::If:
+                - UsingDefaultBucket
+                - Fn::Sub: ${QSS3BucketName}-${AWS::Region}
+                - Ref: QSS3BucketName
+          roleName:
+            Ref: InstanceRole
+      AWS::CloudFormation::Init:
+        config:
+          files:
+            /etc/cfn/cfn-hup.conf:
+              content:
+                Fn::Join:
+                  - ''
+                  - - "[main]\n"
+                    - stack=
+                    - Ref: AWS::StackId
+                    - "\n"
+                    - region=
+                    - Ref: AWS::Region
+                    - ''
+              mode: '000400'
+              owner: root
+              group: root
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content:
+                Fn::Join:
+                  - ''
+                  - - "[cfn-auto-reloader-hook]\n"
+                    - "triggers=post.update\n"
+                    - "path=Resources.PrimaryDBInstance.Metadata.AWS::CloudFormation::Init\n"
+                    - 'action=/opt/aws/bin/cfn-init -v '
+                    - '         --stack '
+                    - Ref: AWS::StackName
+                    - '         --resource PrimaryDBInstance '
+                    - '         --region '
+                    - Ref: AWS::Region
+                    - "\n"
+                    - "runas=root\n"
+            /lib/systemd/system/cfn-hup.service:
+              content:
+                Fn::Join:
+                  - ''
+                  - - "[Unit]\n"
+                    - "Description=cfn-hup daemon\n\n"
+                    - "[Service]\n"
+                    - "Type=simple\n"
+                    - "ExecStart=/opt/aws/bin/cfn-hup\n"
+                    - "Restart=always\n\n"
+                    - "[Install]\n"
+                    - WantedBy=multi-user.target
+            /etc/cfn/usr-param.profile:
+              content:
+                Fn::Join:
+                  - ''
+                  - - "export PRIMARY=Y\n"
+                    - export USER_HOME=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserHome
+                    - "\n"
+                    - export USER_NAME=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserName
+                    - "\n"
+                    - export TB_HOME=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserHome
+                    - Fn::Sub: "/${TiberoBinaryName}\n"
+                    - export INST_ENV=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserHome
+                    - Fn::Sub: "/primary_env.profile\n"
+                    - Fn::Sub: "export TB_SID=${TiberoSID}\n"
+                    - Fn::Sub: "export CM_SID=${PrimaryClusterManagerSID}\n"
+                    - Fn::Sub: "export OBSERVER_SID=${ObserverSID}\n"
+                    - Fn::Sub: "export DB_NAME=${DatabaseName}\n"
+                    - Fn::Sub: "export LISTENER_PORT=${DatabasePort}\n"
+                    - Fn::Sub: "export DB_CLUSTER_PORT=${DatabaseLocalPort}\n"
+                    - Fn::Sub: "export LOG_TARGET_DB_PORT=${DatabaseStandbyLogPort}\n"
+                    - export DATABASE_DIRECTORY=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserHome
+                    - Fn::Sub: "/${DatabaseDirectoryName}\n"
+                    - Fn::Sub: "export CM_PORT=${ClusterManagerPort}\n"
+                    - Fn::Sub: "export CM_CLUSTER_PORT=${ClusterManagerLocalPort}\n"
+                    - Fn::Sub: "export PRIMARY_IP=${PrimaryIPAddress}\n"
+                    - Fn::Sub: "export STANDBY_IP=${StandbyIPAddress}\n"
+                    - Fn::Sub: "export OBSERVER_IP=${ObserverIPAddress}\n"
+                    - Fn::Sub: "export OBSERVER_PORT=${ObserverPort}\n"
+                    - Fn::Sub: "export CHARACTER_SET=${CharacterSet}\n"
+                    - Fn::Sub: "export S3_BUCKET_NAME=${QSS3BucketName}\n"
+                    - Fn::Sub: "export S3_KEY_PREFIX=${QSS3KeyPrefix}\n"
+                    - Fn::Sub: "export EVENT_BUS_NAME=${EventBusName}\n"
+                    - Fn::Sub: "export STANDBY_EBS_TYPE=${StandbyEBSVolumeType}\n"
+                    - Fn::Sub: "export STANDBY_EBS_IOPS=${StandbyEBSVolumeIOPS}\n"
+                    - Fn::Sub: "export SYSTEM_DATAFILE_SIZE=${SystemDatafileSize}\n"
+                    - Fn::Sub: "export SYSSYB_DATAFILE_SIZE=${SyssubDatafileSize}\n"
+                    - Fn::Sub: "export USR_DATAFILE_SIZE=${UserTablespaceDatafileSize}\n"
+                    - Fn::Sub: "export TEMP_DATAFILE_SIZE=${TemporaryTablespaceDatafileSize}\n"
+                    - Fn::Sub: "export UNDO_DATAFILE_SIZE=${UndoTablespaceDatafileSize}\n"
+                    - Fn::Sub: "export REDO_DATAFILE_SIZE=${RedoLogfileSize}\n"
+                    - Fn::Sub: "export REDO_LOG_GROUP=${RedoLogGroup}\n"
+                    - Fn::Sub: "export REDO_LOG_DUPLICATE=${RedoLogDuplicate}\n"
+                    - export MEMORY_TARGET=
+                    - Fn::FindInMap:
+                        - AWSInstanceType2Value
+                        - Ref: PrimaryDBInstanceType
+                        - MemoryTarget
+                    - "\n"
+                    - export TOTAL_SHM_SIZE=
+                    - Fn::FindInMap:
+                        - AWSInstanceType2Value
+                        - Ref: PrimaryDBInstanceType
+                        - TotalSHMSize
+                    - "\n"
+                    - export SHMALL=
+                    - Fn::FindInMap:
+                        - AWSInstanceType2Value
+                        - Ref: PrimaryDBInstanceType
+                        - shmall
+                    - "\n"
+                    - export SHMMAX=
+                    - Fn::FindInMap:
+                        - AWSInstanceType2Value
+                        - Ref: PrimaryDBInstanceType
+                        - shmmax
+                    - "\n"
+            /etc/cfn/env.profile:
+              content:
+                Fn::Join:
+                  - ''
+                  - - export TB_HOME=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserHome
+                    - Fn::Sub: "/${TiberoBinaryName}\n"
+                    - "export CM_HOME=$TB_HOME\n"
+                    - "export PATH=.:$TB_HOME/bin:$TB_HOME/client/bin:/usr/local/bin:$PATH\n"
+                    - "export LD_LIBRARY_PATH=$TB_HOME/lib:$TB_HOME/client/lib:$LD_LIBRARY_PATH\n"
+                    - Fn::Sub: "export TB_SID=${TiberoSID}\n"
+                    - Fn::Sub: "export CM_SID=${PrimaryClusterManagerSID}\n"
+                    - "alias p='ps -ef | grep tb'\n"
+            /etc/cfn/usr-idpw.profile:
+              content:
+                Fn::Join:
+                  - ''
+                  - - Fn::Sub: "export DATABASE_USER_ID=${DatabaseUserID}\n"
+                    - Fn::Sub: "export DATABASE_USER_PW=${DatabaseUserPassword}\n"
+          commands:
+            01enable_cfn_hup:
+              command: systemctl enable cfn-hup.service
+            02start_cfn_hup:
+              command: systemctl start cfn-hup.service
+    Properties:
+      InstanceType:
+        Ref: PrimaryDBInstanceType
+      IamInstanceProfile:
+        Ref: InstanceProfile
+      ImageId:
+        Fn::FindInMap:
+          - AMIRegionMap
+          - Ref: AWS::Region
+          - Fn::FindInMap:
+              - AMINameMap
+              - Ref: TiberoAMIOS
+              - Code
+      KeyName:
+        Ref: KeyPairName
+      UserData:
+        Fn::Base64:
+          Fn::Join:
+            - ''
+            - - "#!/bin/bash -xe\n"
+              - "yum install -y zip\n"
+              - 'curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" '
+              - "-o \"awscliv2.zip\"\n"
+              - "unzip awscliv2.zip\n"
+              - "/aws/install\n"
+              - export USER_HOME=
+              - Fn::FindInMap:
+                  - AMINameMap
+                  - Ref: TiberoAMIOS
+                  - UserHome
+              - "\n"
+              - export USER_NAME=
+              - Fn::FindInMap:
+                  - AMINameMap
+                  - Ref: TiberoAMIOS
+                  - UserName
+              - "\n"
+              - Fn::Sub: "echo -e \"\n\n${AWS::Region}\n\n\" | aws configure\n"
+              - Fn::Sub: "su $USER_NAME -c 'echo -e \"\n\n${AWS::Region}\n\n\" | aws configure'\n"
+              - Fn::Sub:
+                  - aws s3 cp s3://${S3Bucket}/${QSS3KeyPrefix}scripts/install_pkg.sh .
+                  - S3Bucket:
+                      Fn::If:
+                        - UsingDefaultBucket
+                        - Fn::Sub: aws-quickstart-${AWS::Region}
+                        - Ref: QSS3BucketName
+              - '$USER_HOME/install_pkg.sh; chmod 755 $USER_HOME/install_pkg.sh; '
+              - "$USER_HOME/install_pkg.sh; rm -rf $USER_HOME/install_pkg.sh\n"
+              - '/opt/aws/bin/cfn-init -v '
+              - '         --stack '
+              - Ref: AWS::StackName
+              - '         --resource PrimaryDBInstance '
+              - '         --region '
+              - Ref: AWS::Region
+              - "\n"
+              - "export USER_PARAM=/etc/cfn/usr-param.profile; source $USER_PARAM\n"
+              - "mv /etc/cfn/env.profile $INST_ENV\n"
+              - su $USER_NAME -c '
+              - Fn::Sub:
+                  - aws s3 cp s3://${S3Bucket}/${QSS3KeyPrefix}scripts/s3_cp_config.sh .
+                  - S3Bucket:
+                      Fn::If:
+                        - UsingDefaultBucket
+                        - Fn::Sub: aws-quickstart-${AWS::Region}
+                        - Ref: QSS3BucketName
+              - '$USER_HOME/s3_cp_config.sh; chmod 755 $USER_HOME/s3_cp_config.sh; '
+              - '$USER_HOME/s3_cp_config.sh primary $USER_PARAM; '
+              - "rm -rf $USER_HOME/s3_cp_config.sh'\n"
+              - "$TB_HOME/config/mount_volume_p.sh $USER_PARAM\n"
+              - 'su $USER_NAME -c ''source $INST_ENV; '
+              - '$TB_HOME/config/db_create_p.sh '
+              - "/etc/cfn/usr-idpw.profile; sudo rm -rf /etc/cfn/usr-idpw.profile'\n"
+              - '$TB_HOME/config/make_snap_p.sh '
+              - Ref: AWS::StackId
+              - "\n"
+              - "su $USER_NAME -c 'source $INST_ENV; tbboot'\n"
+              - '/opt/aws/bin/cfn-signal -e $? '
+              - '         --stack '
+              - Ref: AWS::StackName
+              - '         --resource PrimaryDBInstance '
+              - '         --region '
+              - Ref: AWS::Region
+              - "\n"
+      NetworkInterfaces:
+        - GroupSet:
+            - Ref: PrimaryDBSecurityGroup
+          AssociatePublicIpAddress: true
+          SubnetId:
+            Ref: PrivateSubnet1ID
+          DeviceIndex: '0'
+          PrivateIpAddresses:
+            - PrivateIpAddress:
+                Ref: PrimaryIPAddress
+              Primary: true
+      Tags:
+        - Key: Name
+          Value: DB Primary
+  PrimaryEBSVolume:
+    Type: AWS::EC2::Volume
+    Properties:
+      Encrypted: true
+      VolumeType:
+        Ref: PrimaryEBSVolumeType
+      Size:
+        Ref: PrimaryEBSVolumeSize
+      Iops:
+        Ref: PrimaryEBSVolumeIOPS
+      AvailabilityZone:
+        Fn::Select:
+          - 0
+          - Fn::GetAZs:
+              Ref: AWS::Region
+      Tags:
+        - Key: Name
+          Value:
+            Ref: AWS::StackId
+  PrimaryEBSVolumeAttachment:
+    Type: AWS::EC2::VolumeAttachment
+    Properties:
+      InstanceId:
+        Ref: PrimaryDBInstance
+      VolumeId:
+        Ref: PrimaryEBSVolume
+      Device: /dev/sdf
+  TiberoBastionSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Enables SSH Access to Bastion Hosts
+      VpcId:
+        Ref: VPCID
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp:
+            Ref: RemoteAccessCIDR
+      Tags:
+        - Key: Name
+          Value: Tibero Bastion SG
+  PrimaryDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Ref: VPCID
+      GroupDescription: Enable PrimaryBastionSecurityGroup access
+      Tags:
+        - Key: Name
+          Value: Primary DB SG
+  PrimaryDBInboundRule1:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 22
+      ToPort: 22
+      GroupId:
+        Fn::GetAtt:
+          - PrimaryDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - TiberoBastionSecurityGroup
+          - GroupId
+  PrimaryDBInboundRule2:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: DatabasePort
+      ToPort:
+        Ref: DatabasePort
+      GroupId:
+        Fn::GetAtt:
+          - PrimaryDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - StandbyDBSecurityGroup
+          - GroupId
+  PrimaryDBInboundRule3:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: DatabasePort
+      ToPort:
+        Ref: DatabasePort
+      GroupId:
+        Fn::GetAtt:
+          - PrimaryDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - ObserverDBSecurityGroup
+          - GroupId
+  PrimaryDBInboundRule4:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: DatabaseLocalPort
+      ToPort:
+        Ref: DatabaseLocalPort
+      GroupId:
+        Fn::GetAtt:
+          - PrimaryDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - StandbyDBSecurityGroup
+          - GroupId
+  PrimaryDBInboundRule5:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: DatabaseStandbyLogPort
+      ToPort:
+        Ref: DatabaseStandbyLogPort
+      GroupId:
+        Fn::GetAtt:
+          - PrimaryDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - StandbyDBSecurityGroup
+          - GroupId
+  PrimaryDBInboundRule6:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: ClusterManagerPort
+      ToPort:
+        Ref: ClusterManagerPort
+      GroupId:
+        Fn::GetAtt:
+          - PrimaryDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - StandbyDBSecurityGroup
+          - GroupId
+  PrimaryDBInboundRule7:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: ClusterManagerLocalPort
+      ToPort:
+        Ref: ClusterManagerLocalPort
+      GroupId:
+        Fn::GetAtt:
+          - PrimaryDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - StandbyDBSecurityGroup
+          - GroupId
+  PrimaryDBInboundRule8:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: ClusterManagerPort
+      ToPort:
+        Ref: ClusterManagerPort
+      GroupId:
+        Fn::GetAtt:
+          - PrimaryDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - ObserverDBSecurityGroup
+          - GroupId
+  PrimaryDBInboundRule9:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: ClusterManagerLocalPort
+      ToPort:
+        Ref: ClusterManagerLocalPort
+      GroupId:
+        Fn::GetAtt:
+          - PrimaryDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - ObserverDBSecurityGroup
+          - GroupId
+  PrimaryDBInboundRule10:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 22
+      ToPort: 22
+      GroupId:
+        Fn::GetAtt:
+          - PrimaryDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - StandbyDBSecurityGroup
+          - GroupId
+  StandbyDBInstance:
+    Type: AWS::EC2::Instance
+    DependsOn: PrimaryDBInstance
+    Metadata:
+      AWS::CloudFormation::Authentication:
+        S3AccessCreds:
+          type: S3
+          buckets:
+            - Fn::If:
+                - UsingDefaultBucket
+                - Fn::Sub: ${QSS3BucketName}-${AWS::Region}
+                - Ref: QSS3BucketName
+          roleName:
+            Ref: InstanceRole
+      AWS::CloudFormation::Init:
+        config:
+          files:
+            /etc/cfn/cfn-hup.conf:
+              content:
+                Fn::Join:
+                  - ''
+                  - - "[main]\n"
+                    - stack=
+                    - Ref: AWS::StackId
+                    - "\n"
+                    - region=
+                    - Ref: AWS::Region
+                    - ''
+              mode: '000400'
+              owner: root
+              group: root
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content:
+                Fn::Join:
+                  - ''
+                  - - "[cfn-auto-reloader-hook]\n"
+                    - "triggers=post.update\n"
+                    - "path=Resources.StandbyDBInstance.Metadata.AWS::CloudFormation::Init\n"
+                    - 'action=/opt/aws/bin/cfn-init -v '
+                    - '         --stack '
+                    - Ref: AWS::StackName
+                    - '         --resource StandbyDBInstance '
+                    - '         --region '
+                    - Ref: AWS::Region
+                    - "\n"
+                    - "runas=root\n"
+            /lib/systemd/system/cfn-hup.service:
+              content:
+                Fn::Join:
+                  - ''
+                  - - "[Unit]\n"
+                    - "Description=cfn-hup daemon\n\n"
+                    - "[Service]\n"
+                    - "Type=simple\n"
+                    - "ExecStart=/opt/aws/bin/cfn-hup\n"
+                    - "Restart=always\n\n"
+                    - "[Install]\n"
+                    - WantedBy=multi-user.target
+            /etc/cfn/usr-param.profile:
+              content:
+                Fn::Join:
+                  - ''
+                  - - "export PRIMARY=N\n"
+                    - export USER_HOME=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserHome
+                    - "\n"
+                    - export USER_NAME=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserName
+                    - "\n"
+                    - export TB_HOME=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserHome
+                    - Fn::Sub: "/${TiberoBinaryName}\n"
+                    - export INST_ENV=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserHome
+                    - Fn::Sub: "/standby_env.profile\n"
+                    - Fn::Sub: "export TB_SID=${TiberoSID}\n"
+                    - Fn::Sub: "export CM_SID=${StandbyClusterManagerSID}\n"
+                    - Fn::Sub: "export OBSERVER_SID=${ObserverSID}\n"
+                    - Fn::Sub: "export DB_NAME=${DatabaseName}\n"
+                    - Fn::Sub: "export LISTENER_PORT=${DatabasePort}\n"
+                    - Fn::Sub: "export DB_CLUSTER_PORT=${DatabaseLocalPort}\n"
+                    - Fn::Sub: "export LOG_TARGET_DB_PORT=${DatabaseStandbyLogPort}\n"
+                    - export DATABASE_DIRECTORY=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserHome
+                    - Fn::Sub: "/${DatabaseDirectoryName}\n"
+                    - Fn::Sub: "export CM_PORT=${ClusterManagerPort}\n"
+                    - Fn::Sub: "export CM_CLUSTER_PORT=${ClusterManagerLocalPort}\n"
+                    - Fn::Sub: "export PRIMARY_IP=${PrimaryIPAddress}\n"
+                    - Fn::Sub: "export STANDBY_IP=${StandbyIPAddress}\n"
+                    - Fn::Sub: "export OBSERVER_IP=${ObserverIPAddress}\n"
+                    - Fn::Sub: "export OBSERVER_PORT=${ObserverPort}\n"
+                    - Fn::Sub: "export CHARACTER_SET=${CharacterSet}\n"
+                    - Fn::Sub: "export S3_BUCKET_NAME=${QSS3BucketName}\n"
+                    - Fn::Sub: "export S3_KEY_PREFIX=${QSS3KeyPrefix}\n"
+                    - Fn::Sub: "export EVENT_BUS_NAME=${EventBusName}\n"
+                    - Fn::Sub: "export STANDBY_EBS_TYPE=${StandbyEBSVolumeType}\n"
+                    - Fn::Sub: "export STANDBY_EBS_IOPS=${StandbyEBSVolumeIOPS}\n"
+                    - export MEMORY_TARGET=
+                    - Fn::FindInMap:
+                        - AWSInstanceType2Value
+                        - Ref: StandbyDBInstanceType
+                        - MemoryTarget
+                    - "\n"
+                    - export TOTAL_SHM_SIZE=
+                    - Fn::FindInMap:
+                        - AWSInstanceType2Value
+                        - Ref: StandbyDBInstanceType
+                        - TotalSHMSize
+                    - "\n"
+                    - export SHMALL=
+                    - Fn::FindInMap:
+                        - AWSInstanceType2Value
+                        - Ref: StandbyDBInstanceType
+                        - shmall
+                    - "\n"
+                    - export SHMMAX=
+                    - Fn::FindInMap:
+                        - AWSInstanceType2Value
+                        - Ref: StandbyDBInstanceType
+                        - shmmax
+                    - "\n"
+            /etc/cfn/env.profile:
+              content:
+                Fn::Join:
+                  - ''
+                  - - export TB_HOME=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserHome
+                    - Fn::Sub: "/${TiberoBinaryName}\n"
+                    - "export CM_HOME=$TB_HOME\n"
+                    - "export PATH=.:$TB_HOME/bin:$TB_HOME/client/bin:/usr/local/bin:$PATH\n"
+                    - "export LD_LIBRARY_PATH=$TB_HOME/lib:$TB_HOME/client/lib:$LD_LIBRARY_PATH\n"
+                    - Fn::Sub: "export TB_SID=${TiberoSID}\n"
+                    - Fn::Sub: "export CM_SID=${StandbyClusterManagerSID}\n"
+                    - "alias p='ps -ef | grep tb'\n"
+          commands:
+            01enable_cfn_hup:
+              command: systemctl enable cfn-hup.service
+            02start_cfn_hup:
+              command: systemctl start cfn-hup.service
+    Properties:
+      InstanceType:
+        Ref: StandbyDBInstanceType
+      IamInstanceProfile:
+        Ref: InstanceProfile
+      ImageId:
+        Fn::FindInMap:
+          - AMIRegionMap
+          - Ref: AWS::Region
+          - Fn::FindInMap:
+              - AMINameMap
+              - Ref: TiberoAMIOS
+              - Code
+      KeyName:
+        Ref: KeyPairName
+      UserData:
+        Fn::Base64:
+          Fn::Join:
+            - ''
+            - - "#!/bin/bash -xe\n"
+              - "yum install -y zip\n"
+              - 'curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" '
+              - "-o \"awscliv2.zip\"\n"
+              - "unzip awscliv2.zip\n"
+              - "/aws/install\n"
+              - export USER_HOME=
+              - Fn::FindInMap:
+                  - AMINameMap
+                  - Ref: TiberoAMIOS
+                  - UserHome
+              - "\n"
+              - export USER_NAME=
+              - Fn::FindInMap:
+                  - AMINameMap
+                  - Ref: TiberoAMIOS
+                  - UserName
+              - "\n"
+              - export DATABASE_DIRECTORY=
+              - Fn::FindInMap:
+                  - AMINameMap
+                  - Ref: TiberoAMIOS
+                  - UserHome
+              - Fn::Sub: "/${DatabaseDirectoryName}\n"
+              - Fn::Sub: "echo -e \"\n\n${AWS::Region}\n\n\" | aws configure\n"
+              - Fn::Sub: "su $USER_NAME -c 'echo -e \"\n\n${AWS::Region}\n\n\" | aws configure'\n"
+              - Fn::Sub:
+                  - aws s3 cp s3://${S3Bucket}/${QSS3KeyPrefix}scripts/install_pkg.sh .
+                  - S3Bucket:
+                      Fn::If:
+                        - UsingDefaultBucket
+                        - Fn::Sub: aws-quickstart-${AWS::Region}
+                        - Ref: QSS3BucketName
+              - '$USER_HOME/install_pkg.sh; chmod 755 $USER_HOME/install_pkg.sh; '
+              - "$USER_HOME/install_pkg.sh; rm -rf $USER_HOME/install_pkg.sh\n"
+              - '/opt/aws/bin/cfn-init -v '
+              - '         --stack '
+              - Ref: AWS::StackName
+              - '         --resource StandbyDBInstance '
+              - '         --region '
+              - Ref: AWS::Region
+              - "\n"
+              - "export USER_PARAM=/etc/cfn/usr-param.profile; source $USER_PARAM\n"
+              - "mv /etc/cfn/env.profile $INST_ENV\n"
+              - su $USER_NAME -c '
+              - Fn::Sub:
+                  - aws s3 cp s3://${S3Bucket}/${QSS3KeyPrefix}scripts/s3_cp_config.sh .
+                  - S3Bucket:
+                      Fn::If:
+                        - UsingDefaultBucket
+                        - Fn::Sub: aws-quickstart-${AWS::Region}
+                        - Ref: QSS3BucketName
+              - '$USER_HOME/s3_cp_config.sh; chmod 755 $USER_HOME/s3_cp_config.sh; '
+              - '$USER_HOME/s3_cp_config.sh standby $USER_PARAM; '
+              - "rm -rf $USER_HOME/s3_cp_config.sh'\n"
+              - '$TB_HOME/config/make_volume_s.sh $USER_PARAM '
+              - Ref: AWS::StackId
+              - "\n"
+              - 'su $USER_NAME -c ''source $INST_ENV; '
+              - "$TB_HOME/config/db_create_s.sh'\n"
+              - '/opt/aws/bin/cfn-signal -e $? '
+              - '         --stack '
+              - Ref: AWS::StackName
+              - '         --resource StandbyDBInstance '
+              - '         --region '
+              - Ref: AWS::Region
+              - "\n"
+      NetworkInterfaces:
+        - GroupSet:
+            - Ref: StandbyDBSecurityGroup
+          AssociatePublicIpAddress: true
+          SubnetId:
+            Ref: PrivateSubnet2ID
+          DeviceIndex: '0'
+          PrivateIpAddresses:
+            - PrivateIpAddress:
+                Ref: StandbyIPAddress
+              Primary: true
+      Tags:
+        - Key: Name
+          Value: DB Standby
+  StandbyDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Ref: VPCID
+      GroupDescription: Enable StandbyBastionSecurityGroup access
+      Tags:
+        - Key: Name
+          Value: Standby DB SG
+  StandbyDBInboundRule1:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 22
+      ToPort: 22
+      GroupId:
+        Fn::GetAtt:
+          - StandbyDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - TiberoBastionSecurityGroup
+          - GroupId
+  StandbyDBInboundRule2:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: DatabasePort
+      ToPort:
+        Ref: DatabasePort
+      GroupId:
+        Fn::GetAtt:
+          - StandbyDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - PrimaryDBSecurityGroup
+          - GroupId
+  StandbyDBInboundRule3:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: DatabasePort
+      ToPort:
+        Ref: DatabasePort
+      GroupId:
+        Fn::GetAtt:
+          - StandbyDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - ObserverDBSecurityGroup
+          - GroupId
+  StandbyDBInboundRule4:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: DatabaseLocalPort
+      ToPort:
+        Ref: DatabaseLocalPort
+      GroupId:
+        Fn::GetAtt:
+          - StandbyDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - PrimaryDBSecurityGroup
+          - GroupId
+  StandbyDBInboundRule5:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: DatabaseStandbyLogPort
+      ToPort:
+        Ref: DatabaseStandbyLogPort
+      GroupId:
+        Fn::GetAtt:
+          - StandbyDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - PrimaryDBSecurityGroup
+          - GroupId
+  StandbyDBInboundRule6:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: ClusterManagerPort
+      ToPort:
+        Ref: ClusterManagerPort
+      GroupId:
+        Fn::GetAtt:
+          - StandbyDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - PrimaryDBSecurityGroup
+          - GroupId
+  StandbyDBInboundRule7:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: ClusterManagerLocalPort
+      ToPort:
+        Ref: ClusterManagerLocalPort
+      GroupId:
+        Fn::GetAtt:
+          - StandbyDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - PrimaryDBSecurityGroup
+          - GroupId
+  StandbyDBInboundRule8:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: ClusterManagerPort
+      ToPort:
+        Ref: ClusterManagerPort
+      GroupId:
+        Fn::GetAtt:
+          - StandbyDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - ObserverDBSecurityGroup
+          - GroupId
+  StandbyDBInboundRule9:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: ClusterManagerLocalPort
+      ToPort:
+        Ref: ClusterManagerLocalPort
+      GroupId:
+        Fn::GetAtt:
+          - StandbyDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - ObserverDBSecurityGroup
+          - GroupId
+  StandbyDBInboundRule10:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 22
+      ToPort: 22
+      GroupId:
+        Fn::GetAtt:
+          - StandbyDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - PrimaryDBSecurityGroup
+          - GroupId
+  ObserverInstance:
+    Type: AWS::EC2::Instance
+    Metadata:
+      AWS::CloudFormation::Authentication:
+        S3AccessCreds:
+          type: S3
+          buckets:
+            - Fn::If:
+                - UsingDefaultBucket
+                - Fn::Sub: ${QSS3BucketName}-${AWS::Region}
+                - Ref: QSS3BucketName
+          roleName:
+            Ref: InstanceRole
+      AWS::CloudFormation::Init:
+        config:
+          files:
+            /etc/cfn/cfn-hup.conf:
+              content:
+                Fn::Join:
+                  - ''
+                  - - "[main]\n"
+                    - stack=
+                    - Ref: AWS::StackId
+                    - "\n"
+                    - region=
+                    - Ref: AWS::Region
+                    - ''
+              mode: '000400'
+              owner: root
+              group: root
+            /etc/cfn/hooks.d/cfn-auto-reloader.conf:
+              content:
+                Fn::Join:
+                  - ''
+                  - - "[cfn-auto-reloader-hook]\n"
+                    - "triggers=post.update\n"
+                    - "path=Resources.ObserverInstance.Metadata.AWS::CloudFormation::Init\n"
+                    - 'action=/opt/aws/bin/cfn-init -v '
+                    - '         --stack '
+                    - Ref: AWS::StackName
+                    - '         --resource ObserverInstance '
+                    - '         --region '
+                    - Ref: AWS::Region
+                    - "\n"
+                    - "runas=root\n"
+            /lib/systemd/system/cfn-hup.service:
+              content:
+                Fn::Join:
+                  - ''
+                  - - "[Unit]\n"
+                    - "Description=cfn-hup daemon\n\n"
+                    - "[Service]\n"
+                    - "Type=simple\n"
+                    - "ExecStart=/opt/aws/bin/cfn-hup\n"
+                    - "Restart=always\n\n"
+                    - "[Install]\n"
+                    - WantedBy=multi-user.target
+            /etc/cfn/usr-param.profile:
+              content:
+                Fn::Join:
+                  - ''
+                  - - "export PRIMARY=N\n"
+                    - export USER_HOME=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserHome
+                    - "\n"
+                    - export USER_NAME=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserName
+                    - "\n"
+                    - export TB_HOME=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserHome
+                    - Fn::Sub: "/${TiberoBinaryName}\n"
+                    - export INST_ENV=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserHome
+                    - Fn::Sub: "/observer_env.profile\n"
+                    - Fn::Sub: "export TB_SID=${TiberoSID}\n"
+                    - Fn::Sub: "export CM_SID=${ObserverSID}\n"
+                    - Fn::Sub: "export PRIMARY_CM=${PrimaryClusterManagerSID}\n"
+                    - Fn::Sub: "export STANDBY_CM=${StandbyClusterManagerSID}\n"
+                    - Fn::Sub: "export DB_NAME=${DatabaseName}\n"
+                    - Fn::Sub: "export LISTENER_PORT=${DatabasePort}\n"
+                    - Fn::Sub: "export DB_CLUSTER_PORT=${DatabaseLocalPort}\n"
+                    - Fn::Sub: "export LOG_TARGET_DB_PORT=${DatabaseStandbyLogPort}\n"
+                    - export DATABASE_DIRECTORY=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserHome
+                    - Fn::Sub: "/${DatabaseDirectoryName}\n"
+                    - Fn::Sub: "export CM_PORT=${ClusterManagerPort}\n"
+                    - Fn::Sub: "export CM_CLUSTER_PORT=${ClusterManagerLocalPort}\n"
+                    - Fn::Sub: "export PRIMARY_IP=${PrimaryIPAddress}\n"
+                    - Fn::Sub: "export STANDBY_IP=${StandbyIPAddress}\n"
+                    - Fn::Sub: "export OBSERVER_IP=${ObserverIPAddress}\n"
+                    - Fn::Sub: "export OBSERVER_PORT=${ObserverPort}\n"
+                    - Fn::Sub: "export CHARACTER_SET=${CharacterSet}\n"
+                    - Fn::Sub: "export S3_BUCKET_NAME=${QSS3BucketName}\n"
+                    - Fn::Sub: "export S3_KEY_PREFIX=${QSS3KeyPrefix}\n"
+                    - Fn::Sub: "export EVENT_BUS_NAME=${EventBusName}\n"
+                    - Fn::Sub: "export STANDBY_EBS_TYPE=${StandbyEBSVolumeType}\n"
+                    - Fn::Sub: "export STANDBY_EBS_IOPS=${StandbyEBSVolumeIOPS}\n"
+                    - export SHMALL=
+                    - Fn::FindInMap:
+                        - AWSInstanceType2Value
+                        - Ref: ObserverInstanceType
+                        - shmall
+                    - "\n"
+                    - export SHMMAX=
+                    - Fn::FindInMap:
+                        - AWSInstanceType2Value
+                        - Ref: ObserverInstanceType
+                        - shmmax
+                    - "\n"
+            /etc/cfn/env.profile:
+              content:
+                Fn::Join:
+                  - ''
+                  - - export TB_HOME=
+                    - Fn::FindInMap:
+                        - AMINameMap
+                        - Ref: TiberoAMIOS
+                        - UserHome
+                    - Fn::Sub: "/${TiberoBinaryName}\n"
+                    - "export CM_HOME=$TB_HOME\n"
+                    - "export PATH=.:$TB_HOME/bin:$TB_HOME/client/bin:/usr/local/bin:$PATH\n"
+                    - "export LD_LIBRARY_PATH=$TB_HOME/lib:$TB_HOME/client/lib:$LD_LIBRARY_PATH\n"
+                    - Fn::Sub: "export CM_SID=${ObserverSID}\n"
+                    - "alias p='ps -ef | grep tb'\n"
+                    - "alias lambdaoff='crontab -r'\n"
+                    - "alias lambdaon='echo \"* * * * * $TB_HOME/scripts/lambda_event.sh /etc/cfn/usr-param.profile\" | crontab -'\n"
+          commands:
+            01enable_cfn_hup:
+              command: systemctl enable cfn-hup.service
+            02start_cfn_hup:
+              command: systemctl start cfn-hup.service
+    Properties:
+      InstanceType:
+        Ref: ObserverInstanceType
+      IamInstanceProfile:
+        Ref: InstanceProfile
+      ImageId:
+        Fn::FindInMap:
+          - AMIRegionMap
+          - Ref: AWS::Region
+          - Fn::FindInMap:
+              - AMINameMap
+              - Ref: TiberoAMIOS
+              - Code
+      KeyName:
+        Ref: KeyPairName
+      UserData:
+        Fn::Base64:
+          Fn::Join:
+            - ''
+            - - "#!/bin/bash -xe\n"
+              - "yum install -y zip\n"
+              - 'curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" '
+              - "-o \"awscliv2.zip\"\n"
+              - "unzip awscliv2.zip\n"
+              - "/aws/install\n"
+              - export USER_HOME=
+              - Fn::FindInMap:
+                  - AMINameMap
+                  - Ref: TiberoAMIOS
+                  - UserHome
+              - "\n"
+              - export USER_NAME=
+              - Fn::FindInMap:
+                  - AMINameMap
+                  - Ref: TiberoAMIOS
+                  - UserName
+              - "\n"
+              - Fn::Sub: "echo -e \"\n\n${AWS::Region}\n\n\" | aws configure\n"
+              - Fn::Sub: "su $USER_NAME -c 'echo -e \"\n\n${AWS::Region}\n\n\" | aws configure'\n"
+              - Fn::Sub:
+                  - aws s3 cp s3://${S3Bucket}/${QSS3KeyPrefix}scripts/install_pkg.sh .
+                  - S3Bucket:
+                      Fn::If:
+                        - UsingDefaultBucket
+                        - Fn::Sub: aws-quickstart-${AWS::Region}
+                        - Ref: QSS3BucketName
+              - '$USER_HOME/install_pkg.sh; chmod 755 $USER_HOME/install_pkg.sh; '
+              - "$USER_HOME/install_pkg.sh; rm -rf $USER_HOME/install_pkg.sh\n"
+              - '/opt/aws/bin/cfn-init -v '
+              - '         --stack '
+              - Ref: AWS::StackName
+              - '         --resource ObserverInstance '
+              - '         --region '
+              - Ref: AWS::Region
+              - "\n"
+              - "export USER_PARAM=/etc/cfn/usr-param.profile; source $USER_PARAM\n"
+              - "mv /etc/cfn/env.profile $INST_ENV\n"
+              - su $USER_NAME -c '
+              - Fn::Sub:
+                  - aws s3 cp s3://${S3Bucket}/${QSS3KeyPrefix}scripts/s3_cp_config.sh .
+                  - S3Bucket:
+                      Fn::If:
+                        - UsingDefaultBucket
+                        - Fn::Sub: aws-quickstart-${AWS::Region}
+                        - Ref: QSS3BucketName
+              - '$USER_HOME/s3_cp_config.sh; chmod 755 $USER_HOME/s3_cp_config.sh; '
+              - '$USER_HOME/s3_cp_config.sh observer $USER_PARAM; '
+              - "rm -rf $USER_HOME/s3_cp_config.sh'\n"
+              - 'su $USER_NAME -c ''source $INST_ENV; tbcmobs -b; sleep 10; '
+              - "$TB_HOME/config/wait_tsc_o.sh $USER_PARAM'\n"
+              - '/opt/aws/bin/cfn-signal -e $? '
+              - '         --stack '
+              - Ref: AWS::StackName
+              - '         --resource ObserverInstance '
+              - '         --region '
+              - Ref: AWS::Region
+              - "\n"
+      NetworkInterfaces:
+        - GroupSet:
+            - Ref: ObserverDBSecurityGroup
+          AssociatePublicIpAddress: true
+          SubnetId:
+            Ref: PrivateSubnet3ID
+          DeviceIndex: '0'
+          PrivateIpAddresses:
+            - PrivateIpAddress:
+                Ref: ObserverIPAddress
+              Primary: true
+      Tags:
+        - Key: Name
+          Value: DB Observer
+    CreationPolicy:
+      ResourceSignal:
+        Count: 1
+        Timeout: PT60M
+      AutoScalingCreationPolicy:
+        MinSuccessfulInstancesPercent: 100
+  ObserverDBSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      VpcId:
+        Ref: VPCID
+      GroupDescription: Enable ObserverBastionSecurityGroup access
+      Tags:
+        - Key: Name
+          Value: Observer DB SG
+  ObserverDBInboundRule1:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort: 22
+      ToPort: 22
+      GroupId:
+        Fn::GetAtt:
+          - ObserverDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - TiberoBastionSecurityGroup
+          - GroupId
+  ObserverDBInboundRule2:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: ObserverPort
+      ToPort:
+        Ref: ObserverPort
+      GroupId:
+        Fn::GetAtt:
+          - ObserverDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - PrimaryDBSecurityGroup
+          - GroupId
+  ObserverDBInboundRule3:
+    Type: AWS::EC2::SecurityGroupIngress
+    Properties:
+      IpProtocol: tcp
+      FromPort:
+        Ref: ObserverPort
+      ToPort:
+        Ref: ObserverPort
+      GroupId:
+        Fn::GetAtt:
+          - ObserverDBSecurityGroup
+          - GroupId
+      SourceSecurityGroupId:
+        Fn::GetAtt:
+          - StandbyDBSecurityGroup
+          - GroupId
+  DBandObsFailSafety:
+    Type: AWS::Lambda::Function
+    Properties:
+      Runtime: python3.8
+      Role:
+        Fn::GetAtt:
+          - LambdaRole
+          - Arn
+      Handler: index.lambda_handler
+      Timeout: 60
+      Code:
+        ZipFile: "import json\nimport boto3\nimport botocore\n\ndef lambda_handler(event, context):\n  region = event['detail']['Region']\n  instance_id = event['detail']['DownInstID']\n  instance_ids =\
+          \ [instance_id]\n  obs_state = event['detail']['ObserverState']\n  tsc_state = event['detail']['TSCstate']\n  tb_home_dir = event['detail']['TBhome']\n  user_param = event['detail']['UserParamPath']\n\
+          \  user_name = event['detail']['UserName']\n  user_command = \"su \" + user_name + \" -c \"\n  command = \"sh \" + tb_home_dir + \"/scripts/lambda_failover.sh \" + user_param + \" \"\n\n  client\
+          \ = boto3.resource(\n    'ec2',\n    region_name = region\n  )\n  ec2_client = boto3.client('ssm')\n\n  if obs_state == 'up':\n    if tsc_state == 'DBdown':\n      command = command + 'DBdown'\n\
+          \    elif tsc_state == 'CMdown':\n      command = command + 'CMdown'\n  elif obs_state == 'down':\n    command = command + 'OBSdown'\n\n  command_c = \"'\" + command + \"'\"\n  command_final =\
+          \ user_command + command_c\n  commands = [command_final]\n\n  resp = ec2_client.send_command(\n    InstanceIds = instance_ids,\n    DocumentName = \"AWS-RunShellScript\",\n    Parameters = {'commands':\
+          \ commands}\n  )\n"
+  PermissionForEventsToInvokeLambda:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName:
+        Fn::GetAtt:
+          - DBandObsFailSafety
+          - Arn
+      Action: lambda:InvokeFunction
+      Principal: events.amazonaws.com
+      SourceArn:
+        Fn::GetAtt:
+          - EventRule
+          - Arn
+  LambdaRole:
+    Type: AWS::IAM::Role
+    Metadata:
+      cfn-lint:
+        config:
+          ignore_checks:
+            - EIAMPolicyWildcardResource
+          ignore_reasons:
+            EIAMPolicyWildcardResource: Resource '*' is by  design.
+    Properties:
+      RoleName:
+        Fn::Sub:
+          - tmaxLambdaRole-${StackID}
+          - StackID:
+              Fn::Select:
+                - 2
+                - Fn::Split:
+                    - /
+                    - Ref: AWS::StackId
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Action:
+              - sts:AssumeRole
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Effect: Allow
+      Path: /
+      ManagedPolicyArns:
+        - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole
+        - Fn::Sub: arn:${AWS::Partition}:iam::aws:policy/AmazonEventBridgeFullAccess
+      Policies:
+        - PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Action:
+                  - ssm:SendCommand
+                  - ssm:GetCommandInvocation
+                Resource: '*'
+                Effect: Allow
+          PolicyName: tmaxLambdaPolicy
+  EventBus:
+    Type: AWS::Events::EventBus
+    Properties:
+      Name:
+        Ref: EventBusName
+  EventRule:
+    Type: AWS::Events::Rule
+    DependsOn: EventBus
+    Properties:
+      Description: Receive the status of TSC and Observer from Observer EC2
+      EventBusName:
+        Ref: EventBusName
+      EventPattern:
+        source:
+          - user-event
+        detail-type:
+          - user-preferences
+      State: ENABLED
+      Targets:
+        - Arn:
+            Fn::GetAtt:
+              - DBandObsFailSafety
+              - Arn
+          Id: DBandObsFailSafety
+      Name: tmaxEventRule
+Mappings:
+  AWSInstanceType2Value:
+    t2.large:
+      MemoryTarget: 7G
+      TotalSHMSize: 5G
+      shmall: '1677722'
+      shmmax: '6442450944'
+    t2.xlarge:
+      MemoryTarget: 14G
+      TotalSHMSize: 10G
+      shmall: '3355443'
+      shmmax: '12884901888'
+    t2.2xlarge:
+      MemoryTarget: 28G
+      TotalSHMSize: 20G
+      shmall: '6710886'
+      shmmax: '25769803776'
+    t3.large:
+      MemoryTarget: 7G
+      TotalSHMSize: 5G
+      shmall: '1677722'
+      shmmax: '6442450944'
+    t3.xlarge:
+      MemoryTarget: 14G
+      TotalSHMSize: 10G
+      shmall: '3355443'
+      shmmax: '12884901888'
+    t3.2xlarge:
+      MemoryTarget: 28G
+      TotalSHMSize: 20G
+      shmall: '6710886'
+      shmmax: '25769803776'
+    m4.large:
+      MemoryTarget: 7G
+      TotalSHMSize: 5G
+      shmall: '1677722'
+      shmmax: '6442450944'
+    m4.xlarge:
+      MemoryTarget: 14G
+      TotalSHMSize: 10G
+      shmall: '3355443'
+      shmmax: '12884901888'
+    m4.2xlarge:
+      MemoryTarget: 28G
+      TotalSHMSize: 20G
+      shmall: '6710886'
+      shmmax: '25769803776'
+    m4.4xlarge:
+      MemoryTarget: 56G
+      TotalSHMSize: 40G
+      shmall: '13421772'
+      shmmax: '51539607552'
+    m4.10xlarge:
+      MemoryTarget: 140G
+      TotalSHMSize: 100G
+      shmall: '33554432'
+      shmmax: '128849018880'
+    m4.16xlarge:
+      MemoryTarget: 224G
+      TotalSHMSize: 160G
+      shmall: '53687088'
+      shmmax: '206158430208'
+    m5.large:
+      MemoryTarget: 7G
+      TotalSHMSize: 5G
+      shmall: '1677722'
+      shmmax: '6442450944'
+    m5.xlarge:
+      MemoryTarget: 14G
+      TotalSHMSize: 10G
+      shmall: '3355443'
+      shmmax: '12884901888'
+    m5.2xlarge:
+      MemoryTarget: 28G
+      TotalSHMSize: 20G
+      shmall: '6710886'
+      shmmax: '25769803776'
+    m5.4xlarge:
+      MemoryTarget: 56G
+      TotalSHMSize: 40G
+      shmall: '13421772'
+      shmmax: '51539607552'
+    m5.8xlarge:
+      MemoryTarget: 112G
+      TotalSHMSize: 80G
+      shmall: '26843544'
+      shmmax: '103079215104'
+    m5.12xlarge:
+      MemoryTarget: 168G
+      TotalSHMSize: 120G
+      shmall: '40265316'
+      shmmax: '154618822656'
+    m5.24xlarge:
+      MemoryTarget: 336G
+      TotalSHMSize: 240G
+      shmall: '80530632'
+      shmmax: '309237645312'
+    m5.metal:
+      MemoryTarget: 336G
+      TotalSHMSize: 240G
+      shmall: '80530632'
+      shmmax: '309237645312'
+    r5.large:
+      MemoryTarget: 14G
+      TotalSHMSize: 10G
+      shmall: '3355443'
+      shmmax: '12884901888'
+    r5.xlarge:
+      MemoryTarget: 28G
+      TotalSHMSize: 20G
+      shmall: '6710886'
+      shmmax: '25769803776'
+    r5.2xlarge:
+      MemoryTarget: 56G
+      TotalSHMSize: 40G
+      shmall: '13421772'
+      shmmax: '51539607552'
+    r5.4xlarge:
+      MemoryTarget: 112G
+      TotalSHMSize: 80G
+      shmall: '26843544'
+      shmmax: '103079215104'
+    r5.8xlarge:
+      MemoryTarget: 224G
+      TotalSHMSize: 160G
+      shmall: '53687088'
+      shmmax: '206158430208'
+    r5.12xlarge:
+      MemoryTarget: 336G
+      TotalSHMSize: 240G
+      shmall: '80530632'
+      shmmax: '309237645312'
+    r5.16xlarge:
+      MemoryTarget: 448G
+      TotalSHMSize: 320G
+      shmall: '107374176'
+      shmmax: '412316860416'
+    r5.24xlarge:
+      MemoryTarget: 672G
+      TotalSHMSize: 480G
+      shmall: '161061264'
+      shmmax: '618475290624'
+    r5.metal:
+      MemoryTarget: 672G
+      TotalSHMSize: 480G
+      shmall: '161061264'
+      shmmax: '618475290624'
+    x1.16xlarge:
+      MemoryTarget: 784G
+      TotalSHMSize: 560G
+      shmall: '187904808'
+      shmmax: '721554505728'
+    x1.32xlarge:
+      MemoryTarget: 1568G
+      TotalSHMSize: 1120G
+      shmall: '375809616'
+      shmmax: '1443109011456'
+  AMINameMap:
+    Red-Hat-Enterprise-Linux-8-HVM:
+      Code: RHEL8HVM
+      UserName: ec2-user
+      UserHome: /home/ec2-user
+      repo: '#already come with repo'
+  AMIRegionMap:
+    ap-northeast-1:
+      RHEL8HVM: ami-05bd7307eceee3fc4
+    ap-northeast-2:
+      RHEL8HVM: ami-07c0c53e27ec30cb7
+    ap-northeast-3:
+      RHEL8HVM: ami-0e4cb22fe49a3155d
+    ap-south-1:
+      RHEL8HVM: ami-0d54c216ef5b3bf79
+    ap-southeast-1:
+      RHEL8HVM: ami-0b0804417e6dd5dba
+    ap-southeast-2:
+      RHEL8HVM: ami-056b3d62f28601476
+    ca-central-1:
+      RHEL8HVM: ami-0da363d9e41730d41
+    eu-central-1:
+      RHEL8HVM: ami-0d0528d75d52ff40b
+    eu-west-1:
+      RHEL8HVM: ami-0eac5f07221408193
+    eu-west-2:
+      RHEL8HVM: ami-03d7a75e8d89dce95
+    eu-west-3:
+      RHEL8HVM: ami-0f7a5775bd9ee9261
+    eu-north-1:
+      RHEL8HVM: ami-06021eba6cdc0931c
+    sa-east-1:
+      RHEL8HVM: ami-0f12cb48f0e6ed42d
+    us-east-1:
+      RHEL8HVM: ami-03951dc3553ee499f
+    us-east-2:
+      RHEL8HVM: ami-0c76f6aa35a67629c
+    us-west-2:
+      RHEL8HVM: ami-0a22b81e58d7997d7
+Outputs: {}
